@@ -41,6 +41,8 @@
 
 AI 视频只是总控可以调用的一个领域包。剧本、分镜、提示词、VFX、TTS 和声音等专业 Skill 按阶段接入；H3 只是其中一条执行路线。
 
+后续架构与实现任务已经整理为 [`docs/pending-execution-plan.md`](docs/pending-execution-plan.md)。计划重点是双核心、可插拔领域包、前置需求摸清、低打扰门禁、可恢复 Skill 退役和运行可靠性；当前状态为待执行。
+
 ## 快速安装
 
 建议使用 Python 3.11 或更高版本。
