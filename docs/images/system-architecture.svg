@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+  <title id="title">How one AI creation project moves through the workflow</title>
+  <desc id="desc">Bilingual diagram showing how project records, specialist skills, local or cloud execution, and final evidence connect.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0f172a"/><stop offset="1" stop-color="#172554"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="7" stdDeviation="8" flood-opacity=".25"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#93c5fd"/></marker>
+    <style>
+      .title{font:700 30px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#f8fafc}.sub{font:16px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#cbd5e1}.h{font:700 20px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#f8fafc}.t{font:15px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#e2e8f0}.small{font:13px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#cbd5e1}.line{stroke:#93c5fd;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1280" height="760" rx="28" fill="url(#bg)"/>
+  <text x="640" y="52" text-anchor="middle" class="title">一条项目怎么跑完 / How a project moves</text>
+  <text x="640" y="82" text-anchor="middle" class="sub">每一步知道该用谁、结果放哪，出了问题也知道从哪里接着跑</text>
+
+  <g filter="url(#shadow)">
+    <rect x="55" y="140" width="235" height="120" rx="18" fill="#1d4ed8"/>
+    <text x="172" y="180" text-anchor="middle" class="h">目标与已有材料</text><text x="172" y="207" text-anchor="middle" class="t">Goal &amp; existing assets</text><text x="172" y="234" text-anchor="middle" class="small">剧本、素材、约束、交付要求</text>
+
+    <rect x="385" y="125" width="510" height="150" rx="22" fill="#7c3aed"/>
+    <text x="640" y="168" text-anchor="middle" class="h">项目总控 / Project Orchestrator</text><text x="640" y="198" text-anchor="middle" class="t">契约 · 阶段图 · 状态 · 审批门 · 验收</text><text x="640" y="228" text-anchor="middle" class="small">ai-creation-workflow</text>
+
+    <rect x="990" y="140" width="235" height="120" rx="18" fill="#0f766e"/>
+    <text x="1107" y="180" text-anchor="middle" class="h">Skill 治理</text><text x="1107" y="207" text-anchor="middle" class="t">Skill governance</text><text x="1107" y="234" text-anchor="middle" class="small">发现、路由、证据、更新</text>
+
+    <rect x="55" y="360" width="330" height="155" rx="20" fill="#334155"/>
+    <text x="220" y="400" text-anchor="middle" class="h">专业创作 Skill / Craft Skills</text><text x="220" y="432" text-anchor="middle" class="t">编剧 · 导演 · 分镜 · 提示词</text><text x="220" y="460" text-anchor="middle" class="t">VFX · TTS · 声音 · 剪辑</text><text x="220" y="490" text-anchor="middle" class="small">每阶段一个主 Skill，可加独立验证者</text>
+
+    <rect x="475" y="360" width="330" height="155" rx="20" fill="#9a3412"/>
+    <text x="640" y="400" text-anchor="middle" class="h">运行选择 / Runtime Router</text><text x="640" y="432" text-anchor="middle" class="t">本地或云端 · 成本 · 授权</text><text x="640" y="460" text-anchor="middle" class="t">输入 · 输出 · 超时 · 回退</text><text x="640" y="490" text-anchor="middle" class="small">h3-runtime-router</text>
+
+    <rect x="895" y="340" width="330" height="195" rx="20" fill="#075985"/>
+    <text x="1060" y="382" text-anchor="middle" class="h">执行后端 / Execution</text><text x="1060" y="418" text-anchor="middle" class="t">本地：ComfyUI API Runner</text><text x="1060" y="448" text-anchor="middle" class="t">云端：H3 Batch Runner</text><text x="1060" y="478" text-anchor="middle" class="t">实例：AutoDL Lifecycle</text><text x="1060" y="510" text-anchor="middle" class="small">保存 prompt ID，支持恢复和关机</text>
+
+    <rect x="355" y="620" width="570" height="95" rx="20" fill="#166534"/>
+    <text x="640" y="658" text-anchor="middle" class="h">实际产物与证据 / Artifact &amp; Evidence</text><text x="640" y="688" text-anchor="middle" class="t">媒体参数 · 内容审核 · 交付文件 · Skill 质量记录</text>
+  </g>
+
+  <path class="line" d="M290 200 H385"/><path class="line" d="M895 200 H990"/>
+  <path class="line" d="M520 275 C450 315 330 315 250 360"/><path class="line" d="M640 275 V360"/><path class="line" d="M760 275 C845 315 950 305 1020 340"/>
+  <path class="line" d="M385 437 H475"/><path class="line" d="M805 437 H895"/>
+  <path class="line" d="M220 515 C260 590 410 610 485 620"/><path class="line" d="M640 515 V620"/><path class="line" d="M1060 535 C1000 590 875 610 795 620"/>
+  <path d="M925 668 C1110 668 1195 610 1195 560" stroke="#86efac" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="1070" y="650" text-anchor="middle" class="small">结果回写项目状态 / feedback</text>
+</svg>

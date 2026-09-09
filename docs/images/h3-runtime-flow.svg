@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="790" viewBox="0 0 1280 790" role="img" aria-labelledby="title desc">
+  <title id="title">MiniMax H3 local and cloud runtime flow</title>
+  <desc id="desc">Bilingual decision and recovery diagram for choosing local or cloud execution, confirming the generation contract, running, validating, and recovering by prompt ID.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#082f49"/><stop offset="1" stop-color="#1e1b4b"/></linearGradient>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#bae6fd"/></marker>
+    <filter id="s"><feDropShadow dx="0" dy="6" stdDeviation="7" flood-opacity=".25"/></filter>
+    <style>.title{font:700 30px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#fff}.sub{font:15px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#bae6fd}.h{font:700 18px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#fff}.t{font:14px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#e0f2fe}.small{font:13px 'Segoe UI','Microsoft YaHei',sans-serif;fill:#cbd5e1}.line{stroke:#bae6fd;stroke-width:3;fill:none;marker-end:url(#arr)}</style>
+  </defs>
+  <rect width="1280" height="790" rx="28" fill="url(#bg)"/>
+  <text x="640" y="50" text-anchor="middle" class="title">H3 本地 / 云端执行流程</text>
+  <text x="640" y="78" text-anchor="middle" class="sub">MiniMax H3 Local / Cloud Runtime and Recovery</text>
+
+  <g filter="url(#s)">
+    <rect x="430" y="110" width="420" height="90" rx="18" fill="#1d4ed8"/><text x="640" y="145" text-anchor="middle" class="h">提示词与参考材料已准备 / Materials ready</text><text x="640" y="174" text-anchor="middle" class="t">还没有指定运行位置？只问：云端还是本地</text>
+    <path d="M640 230L790 310L640 390L490 310Z" fill="#7c3aed"/><text x="640" y="301" text-anchor="middle" class="h">生成契约完整？</text><text x="640" y="328" text-anchor="middle" class="t">Workflow · Input · Scope</text><text x="640" y="351" text-anchor="middle" class="t">Output · Cost · Fallback</text>
+
+    <rect x="80" y="445" width="430" height="150" rx="20" fill="#0f766e"/><text x="295" y="483" text-anchor="middle" class="h">本地 / Local ComfyUI</text><text x="295" y="516" text-anchor="middle" class="t">API Format workflow JSON</text><text x="295" y="546" text-anchor="middle" class="t">dry-run → upload → submit → poll</text><text x="295" y="574" text-anchor="middle" class="small">comfyui-local-runner</text>
+    <rect x="770" y="445" width="430" height="150" rx="20" fill="#9a3412"/><text x="985" y="483" text-anchor="middle" class="h">云端 / AutoDL Cloud</text><text x="985" y="516" text-anchor="middle" class="t">准确实例 + 已安装 workflow ID</text><text x="985" y="546" text-anchor="middle" class="t">boot → upload → batch → download → off</text><text x="985" y="574" text-anchor="middle" class="small">minimax-h3-cloud + autodl-app-instance</text>
+
+    <rect x="430" y="660" width="420" height="90" rx="18" fill="#166534"/><text x="640" y="696" text-anchor="middle" class="h">验证实际视频 / Validate artifact</text><text x="640" y="725" text-anchor="middle" class="t">时长 · 分辨率 · 编码 · 音轨 · 内容</text>
+
+    <rect x="25" y="665" width="300" height="75" rx="16" fill="#881337" stroke="#fda4af"/><text x="175" y="694" text-anchor="middle" class="h">断线或超时 / Timeout</text><text x="175" y="720" text-anchor="middle" class="t">先按 prompt ID 恢复，禁止盲目重提</text>
+  </g>
+
+  <path class="line" d="M640 200V230"/><path class="line" d="M520 365C430 405 360 420 295 445"/><path class="line" d="M760 365C850 405 920 420 985 445"/>
+  <text x="410" y="411" class="sub">本地 / local</text><text x="830" y="411" class="sub">云端 / cloud</text>
+  <path class="line" d="M295 595C350 640 450 650 520 660"/><path class="line" d="M985 595C930 640 830 650 760 660"/>
+  <path d="M430 705H325" stroke="#fda4af" stroke-width="3" fill="none" marker-end="url(#arr)"/>
+  <path d="M175 665C175 610 175 590 205 565" stroke="#fda4af" stroke-width="3" fill="none" marker-end="url(#arr)"/>
+  <text x="365" y="688" class="small">验证失败</text>
+</svg>
