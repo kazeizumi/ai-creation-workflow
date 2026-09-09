@@ -12,7 +12,7 @@
 
 - 第一次使用，先看[快速安装](#快速安装)。
 - 想跑完整项目，看[`ai-creation-workflow`](#1-ai-creation-workflow创作项目总控)。
-- Skill 太多不好管理，看[`skill-governor`](#2-skill-governorskill-管理与路由)。
+- Skill 太多不好管理，看[`skill-governor`](#2-skill-governor技能管家)。
 - 已经准备好 H3 材料，看[`h3-runtime-router`](#3-h3-runtime-routerh3-本地云端决策)。
 - 在自己电脑上生成，看[本地 ComfyUI 执行](#4-comfyui-local-runner本地-comfyui-执行)。
 - 租 AutoDL 实例生成，看[云端 H3 执行](#6-minimax-h3-cloud云端-h3-工作流执行)。
@@ -21,16 +21,25 @@
 
 ![AI 创作控制系统整体架构](docs/images/system-architecture.svg)
 
-| Skill | 核心功能 | 典型使用场景 |
+这里有两个主导角色，分工很明确：
+
+| 主导角色 | 负责什么 | 不负责什么 |
 |---|---|---|
-| `ai-creation-workflow` | 项目契约、阶段图、状态、审批门、验收与交付 | 完整短片、广告、剧情片段、跨多轮创作项目 |
-| `skill-governor` | Skill 发现、登记、路由、查重、质量证据、升级与回滚 | 新装 Skill、选择同类 Skill、治理大型技能库 |
+| `skill-governor` 技能管家 | 管理 Skill 库，发现、登记、分配、查重、评估、升级、备份和回滚 | 不替项目写计划，不追踪项目进度，不冒充专业 Skill 产出内容 |
+| `ai-creation-workflow` 工作流总控 | 理解目标，列出执行计划和详细步骤，安排依赖，推进每一步，验收和交付 | 不直接修改 Skill 库，不替专业 Skill 发明工艺 |
+
+总控在建立或修改阶段时，把“要产出什么、手里有什么、用什么工具、怎么验收”交给技能管家。技能管家返回最合适的主 Skill、必要的补充 Skill、边界和缺口，总控再把这项分配写入计划并负责落实。
+
+| 执行支持 | 核心功能 | 典型使用场景 |
+|---|---|---|
 | `h3-runtime-router` | H3 本地/云端选择、生成契约、成本和失败策略 | 提示词与素材已经完成，准备开始渲染 |
 | `comfyui-local-runner` | 用 JSON 清单执行本机 ComfyUI API 工作流 | 本地模型与工作流已经装好，希望稳定复现参数 |
 | `minimax-h3-cloud` | 检查云端已装工作流、批量提交、轮询、下载和关机 | 使用 AutoDL 中已有的 H3 工作流进行付费生成 |
 | `autodl-app-instance` | 查询、启动、发现面板、关闭 AutoDL 应用实例 | 云端生成前后的实例生命周期管理 |
 
 编剧、导演、分镜、提示词、特效和声音设计属于可插拔专业能力。总控按“功能域、工作阶段、输入输出和能力边界”调用它们，不在代码里绑定某一个私有 Skill 名称。
+
+AI 视频只是总控可以调用的一个领域包。剧本、分镜、提示词、VFX、TTS 和声音等专业 Skill 按阶段接入；H3 只是其中一条执行路线。
 
 ## 快速安装
 
@@ -69,7 +78,7 @@ python -m pip install -r skills/minimax-h3-cloud/requirements.txt
 
 ### 什么时候使用
 
-当任务包含两个以上相互依赖的阶段，或者涉及付费生成、多次渲染、多人交接、长期续作时，用它作为唯一项目入口。例如：
+当任务包含两个以上相互依赖的阶段，或者涉及付费生成、多次渲染、多人交接、长期续作时，用它负责项目计划和执行。例如：
 
 - 从故事梗概制作一支完整 AI 短片。
 - 把锁定剧本拆成内容单元、镜头和 H3 生成段。
@@ -100,7 +109,7 @@ templates/00-project-control.md
 templates/workflow-state.json
 ```
 
-总控会依次完成：复用已有材料、定义交付和验收、选择专业 Skill、建立阶段依赖、执行阶段、进入质量或费用门、验证实际产物、记录交付和使用证据。
+总控会依次完成：复用已有材料、定义交付和验收、建立阶段依赖、请技能管家分配专业 Skill、执行阶段、进入质量或费用门、验证实际产物、记录交付和使用证据。
 
 阶段状态包括 `pending`、`ready`、`running`、`blocked`、`review`、`accepted` 和 `failed`。上游锁定内容变化后，下游阶段应先标记为失效，再重新执行。
 
@@ -123,19 +132,19 @@ templates/workflow-state.json
 
 每个生成段都应自包含开场状态、动作或变化过程、结束状态。不要假设视频模型能记住上一段请求。
 
-## 2. `skill-governor`：Skill 管理与路由
+## 2. `skill-governor`：技能管家
 
 ![Skill 治理循环](docs/images/skill-governance-cycle.svg)
 
 ### 什么时候使用
 
-- 安装新 Skill 后，希望知道它适合哪个阶段。
+- 安装新 Skill 后，希望把它放进合适的功能域和工作阶段。
 - 多个 Skill 都能“写提示词”或“做分镜”，需要判断主次和边界。
 - Skill 更新后，想知道行为文件是否变化、旧映射是否失效。
 - 希望记录某个 Skill 在真实任务中的成功、部分成功或失败证据。
 - 准备合并、停用或替换 Skill，需要备份和回滚能力。
 
-### 扫描和查看路由
+### 扫描、分配和查看路由
 
 ```powershell
 python skills/skill-governor/scripts/skill_registry.py scan
@@ -172,7 +181,27 @@ python skills/skill-governor/scripts/skill_registry.py validate
 python skills/skill-governor/scripts/skill_registry.py ack-map --skill h3-runtime-router --review-level full-reviewed
 ```
 
-### 记录真实使用和质量
+### 学习、评分和生命周期
+
+新装 Skill 默认是 `probation`（试用）。技能管家会把它放进限定场景，用同一个真实请求和现有主 Skill 做 A/B，再根据证据决定是否进入主路由。评分和使用次数分开：使用多不等于质量高，项目整体失败也不能直接把所有参与 Skill 一起扣分。
+
+质量证据至少要能归因到当前 Skill，并绑定任务 ID 和行为指纹。七个维度各按 1–5 分：适配 `fit`、产物 `output`、稳定 `reliability`、效率 `efficiency`、维护 `maintainability`、独特性 `uniqueness`、安全 `safety`。只有用户明确反馈、独立回归或可测量变化时才记录评分：
+
+```powershell
+python skills/skill-governor/scripts/skill_registry.py record-outcome `
+  --skill h3-runtime-router `
+  --task-id project-001-G01 `
+  --fit 5 --output 5 --reliability 4 --efficiency 4 `
+  --maintainability 5 --uniqueness 4 --safety 5 `
+  --verdict pass `
+  --source user `
+  --evidence "完成本地/云端决策，生成契约可直接交给执行器" `
+  --artifact artifacts/project-001/runtime-contract.md
+```
+
+审计会把 Skill 分到 `keep-core`（核心）、`keep-specialist`（专项）、`trial-review`（试用）、`observe`（观察）、`compare`（对比）、`repair`（修复）、`quarantine-review`（隔离审查）或 `protected`（受保护）。更新版本会保留旧证据，但新版本重新试用。
+
+记录真实使用和生成审计报告：
 
 记录一次实际调用：
 
@@ -192,7 +221,11 @@ python skills/skill-governor/scripts/skill_audit.py audit `
   --output-md skill-audit.md
 ```
 
-使用频率和质量评价分开保存。出现重复候选只会触发审查，不会自动删除 Skill。
+使用频率和质量评价分开保存。出现重复候选只会触发同题 A/B 审查，不会自动删除 Skill。完整规则见 [`skills/skill-governor/references/evolution.md`](skills/skill-governor/references/evolution.md)。
+
+### 退役和淘汰门禁
+
+只有在替代者已通过测试、独特能力已经迁移、同题 A/B 不劣、近期使用和历史依赖已核对、许可证允许整合，并且有日期化可恢复备份时，技能管家才会提出退役建议。移动、停用、合并或删除仍需用户明确批准；默认移入归档，并写入 `registry/skill-retirements.json`，不做永久删除。
 
 ### 安全更新和回滚
 

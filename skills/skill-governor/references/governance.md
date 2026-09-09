@@ -13,6 +13,12 @@ System and plugin-managed skills are protected from local mutation. Shared
 skills may be updated through a staged three-way merge. A duplicate score is a
 review signal; it is never automatic permission to delete or merge.
 
+The learning lifecycle is documented in [evolution.md](evolution.md). Keep
+static readiness, attributable quality scores, and usage history as separate
+evidence streams. New or updated skills stay in probation until a real-task
+comparison supplies enough evidence. Retirement is a recoverable, user-approved
+archive operation, not a score threshold or an automatic delete.
+
 Use a source allowlist and inspect a downloaded skill before activation. Treat
 instructions, scripts and tool declarations from outside repositories as
 untrusted until reviewed.

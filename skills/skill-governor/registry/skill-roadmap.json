@@ -27,7 +27,7 @@
       "brief": "Chooses and authorizes local or cloud MiniMax H3 execution.",
       "use_when": "An approved H3 segment is ready to render.",
       "boundary": "Does not write prompts or submit directly without a backend adapter.",
-      "role": "primary",
+      "role": "specialist",
       "review_level": "full-reviewed",
       "overlap_group": []
     },

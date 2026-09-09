@@ -29,22 +29,35 @@ Jump to the part that matches your job:
 - Follow the [local runner](#4-local-execution-with-comfyui-local-runner) for your own ComfyUI machine.
 - Follow the [cloud runner](#6-cloud-h3-execution-with-minimax-h3-cloud) for an AutoDL instance.
 
-![AI Creation Control Plane architecture](docs/images/system-architecture.svg)
+![How one AI creation project moves through the workflow](docs/images/system-architecture.svg)
 
 ## What is included
 
-| Skill | Responsibility |
-|---|---|
-| `ai-creation-workflow` | Project setup, requirement contract, stage graph, gates, state, validation and closeout |
-| `skill-governor` | Skill discovery, routing registry, provenance, overlap review, evidence and reversible upgrades |
-| `h3-runtime-router` | Local/cloud decision, generation authorization, cost estimate and backend handoff |
-| `comfyui-local-runner` | Manifest-driven submission to an existing local ComfyUI API workflow |
-| `minimax-h3-cloud` | Exact installed-workflow inspection, upload, batch submission, download and shutdown |
-| `autodl-app-instance` | Secure AutoDL application-instance lifecycle and panel discovery |
+Two roles lead the package:
 
-Creative skills such as screenwriting, directing, prompt writing, VFX and sound
-design remain plug-ins. Register whichever implementations you trust; the
-orchestrator selects them by capability and stage instead of hard-coding names.
+| Lead role | Owns | Does not own |
+|---|---|---|
+| `skill-governor` | The skill library: discovery, registration, allocation, overlap review, evidence, upgrades, backups, and rollback | A project's plan, progress, or specialist craft output |
+| `ai-creation-workflow` | The project goal, execution plan, detailed steps, dependencies, gates, progress, validation, and delivery | Mutating the skill library or inventing a specialist's craft method |
+
+When the workflow controller creates or changes a stage, it sends the governor
+the requested output, available inputs, tool, constraints, and acceptance test.
+The governor returns the best primary skill, any necessary specialist, its
+boundary, and missing inputs. The workflow controller writes that assignment
+into the plan and carries it through execution.
+
+The following four skills support individual execution stages:
+
+| Execution support | Responsibility | Typical use |
+|---|---|---|
+| `h3-runtime-router` | Local/cloud choice, generation contract, cost, and failure policy | H3 materials are ready for rendering |
+| `comfyui-local-runner` | Manifest-driven submission to an existing local ComfyUI API workflow | Local models and workflow are installed |
+| `minimax-h3-cloud` | Installed-workflow inspection, upload, batch submission, download, and shutdown | Running H3 on an AutoDL instance |
+| `autodl-app-instance` | AutoDL instance lifecycle and current panel discovery | Starting and stopping the cloud backend |
+
+AI video is one domain pack inside the workflow controller. Screenwriting,
+direction, prompting, VFX, TTS, and sound skills join the stages they own; H3 is
+one execution route among them.
 
 ## Install
 
@@ -95,9 +108,10 @@ Dry runs do not start instances or submit generation jobs.
 
 ## 1. Project orchestration with `ai-creation-workflow`
 
-Use this skill as the single project entry point when two or more stages depend
-on each other, or when the work includes paid generation, batches, handoffs, or
-long-running state.
+Use this controller for the project plan and execution when two or more stages
+depend on each other, or when the work includes paid generation, batches,
+handoffs, or long-running state. At each stage it asks `skill-governor` for the
+best installed specialist, then owns the run, gate, validation, and delivery.
 
 Example invocation:
 
@@ -177,6 +191,39 @@ python skills/skill-governor/scripts/skill_registry.py ack-map \
   --review-level full-reviewed
 ```
 
+### Learn, score, and evolve the portfolio
+
+A newly installed skill starts in `probation`. The governor limits it to a
+defined scenario and compares it with the current primary skill on the same
+real request. Promotion requires evidence from that comparison; a bundled demo
+or marketing description is not enough.
+
+Usage and quality are separate signals. Usage tells us whether a skill was
+selected, completed, partially completed, failed, or replaced. It does not prove
+quality. Quality evidence must be attributable to the current skill and bound to
+the task ID and behavior fingerprint. Score these seven dimensions from 1 to 5:
+`fit`, `output`, `reliability`, `efficiency`, `maintainability`, `uniqueness`,
+and `safety`.
+
+Record a quality result only after explicit user feedback, an independent
+regression, or a measurable change:
+
+```bash
+python skills/skill-governor/scripts/skill_registry.py record-outcome \
+  --skill h3-runtime-router \
+  --task-id project-001-G01 \
+  --fit 5 --output 5 --reliability 4 --efficiency 4 \
+  --maintainability 5 --uniqueness 4 --safety 5 \
+  --verdict pass \
+  --source user \
+  --evidence "Produced a usable local/cloud decision and generation contract" \
+  --artifact artifacts/project-001/runtime-contract.md
+```
+
+The audit can return `keep-core`, `keep-specialist`, `trial-review`, `observe`,
+`compare`, `repair`, `quarantine-review`, or `protected`. An update keeps the
+old evidence as history but sends the new version back to probation.
+
 ### Record use and audit the portfolio
 
 ```bash
@@ -192,7 +239,18 @@ python skills/skill-governor/scripts/skill_audit.py audit \
 ```
 
 Usage frequency and quality evidence are stored separately. An overlap score is
-a review signal and never causes automatic deletion.
+a review signal and never causes automatic deletion. The full lifecycle rules
+are in [`skills/skill-governor/references/evolution.md`](skills/skill-governor/references/evolution.md).
+
+### Retirement gate
+
+The governor proposes retirement only after a tested replacement exists, unique
+capabilities have been migrated or judged unnecessary, same-task A/B is no
+worse, recent use and project dependencies are checked, the license permits the
+integration, and a dated recoverable backup exists. Moving, disabling, merging,
+or deleting still requires explicit user approval. The default action is a
+dated archive recorded in `registry/skill-retirements.json`, never permanent
+automatic deletion.
 
 ### Update safely
 

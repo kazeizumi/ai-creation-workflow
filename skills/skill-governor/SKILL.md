@@ -5,17 +5,26 @@ description: Govern an agent skill portfolio by discovering installed skills, ma
 
 # Skill governor
 
-Route by capability, stage and boundary. Do not choose a skill because its name
-happens to contain a prompt keyword.
+Act as the skill manager. Own the installed skill portfolio and decide which
+skill is fit for a requested capability, stage and boundary. Do not choose a
+skill because its name happens to contain a prompt keyword.
+
+The governor and `ai-creation-workflow` are the two top-level roles in this
+package. The governor manages skills; the workflow controller manages a
+project's plan and execution. For a production stage, the workflow controller
+sends the required output and constraints to the governor, and the governor
+returns a primary skill, optional specialist, boundary and input requirements.
+The governor does not take over project scheduling or progress reporting.
 
 ## Normal routing
 
-1. Identify the requested functional lane and production stage.
-2. Run `scripts/skill_registry.py report --lane "<lane>"` or inspect the roadmap.
-3. Exclude entries whose mapping is stale, colliding or incomplete.
-4. Prefer one primary skill. Add a complementary skill only for a distinct
-   output or validator duty.
-5. State the boundary when two candidates overlap.
+1. Receive a stage request from the workflow controller: required output,
+   inputs, tool, constraints and acceptance evidence.
+2. Identify the functional lane and production stage.
+3. Run `scripts/skill_registry.py report --lane "<lane>"` or inspect the roadmap.
+4. Exclude entries whose mapping is stale, colliding or incomplete.
+5. Return one primary skill, optional complementary skills, boundaries and
+   missing inputs. The workflow controller writes this assignment into its plan.
 
 ## Portfolio maintenance
 
@@ -46,5 +55,10 @@ conflicts in staging, then create a verified backup before activation. Preserve
 source commit, license and local modifications in `skill-sources.json`.
 
 Read [references/governance.md](references/governance.md) before merging,
-disabling or replacing a skill, and [references/registry-schema.md](references/registry-schema.md)
-when adding routes or evidence.
+disabling or replacing a skill, [references/evolution.md](references/evolution.md)
+when recording learning, scoring or retirement evidence, and
+[references/registry-schema.md](references/registry-schema.md) when adding routes
+or evidence.
+
+Read [references/role-model.md](references/role-model.md) when deciding whether
+a change belongs to the skill manager or the workflow controller.

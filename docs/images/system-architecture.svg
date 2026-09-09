@@ -10,24 +10,24 @@
     </style>
   </defs>
   <rect width="1280" height="760" rx="28" fill="url(#bg)"/>
-  <text x="640" y="52" text-anchor="middle" class="title">一条项目怎么跑完 / How a project moves</text>
-  <text x="640" y="82" text-anchor="middle" class="sub">每一步知道该用谁、结果放哪，出了问题也知道从哪里接着跑</text>
+  <text x="640" y="52" text-anchor="middle" class="title">两个主导角色，分工完成一条项目</text>
+  <text x="640" y="82" text-anchor="middle" class="sub">技能管家分配能力，工作流总控安排步骤并负责落实</text>
 
   <g filter="url(#shadow)">
     <rect x="55" y="140" width="235" height="120" rx="18" fill="#1d4ed8"/>
     <text x="172" y="180" text-anchor="middle" class="h">目标与已有材料</text><text x="172" y="207" text-anchor="middle" class="t">Goal &amp; existing assets</text><text x="172" y="234" text-anchor="middle" class="small">剧本、素材、约束、交付要求</text>
 
     <rect x="385" y="125" width="510" height="150" rx="22" fill="#7c3aed"/>
-    <text x="640" y="168" text-anchor="middle" class="h">项目总控 / Project Orchestrator</text><text x="640" y="198" text-anchor="middle" class="t">契约 · 阶段图 · 状态 · 审批门 · 验收</text><text x="640" y="228" text-anchor="middle" class="small">ai-creation-workflow</text>
+    <text x="640" y="168" text-anchor="middle" class="h">技能管家 / Skill Governor</text><text x="640" y="198" text-anchor="middle" class="t">发现 · 分配 · 查重 · 评估 · 升级 · 回滚</text><text x="640" y="228" text-anchor="middle" class="small">skill-governor：管理技能库</text>
 
     <rect x="990" y="140" width="235" height="120" rx="18" fill="#0f766e"/>
-    <text x="1107" y="180" text-anchor="middle" class="h">Skill 治理</text><text x="1107" y="207" text-anchor="middle" class="t">Skill governance</text><text x="1107" y="234" text-anchor="middle" class="small">发现、路由、证据、更新</text>
+    <text x="1107" y="180" text-anchor="middle" class="h">工作流总控 / Workflow</text><text x="1107" y="207" text-anchor="middle" class="t">计划 · 步骤 · 依赖 · 推进</text><text x="1107" y="234" text-anchor="middle" class="small">验收、恢复、交付</text>
 
     <rect x="55" y="360" width="330" height="155" rx="20" fill="#334155"/>
-    <text x="220" y="400" text-anchor="middle" class="h">专业创作 Skill / Craft Skills</text><text x="220" y="432" text-anchor="middle" class="t">编剧 · 导演 · 分镜 · 提示词</text><text x="220" y="460" text-anchor="middle" class="t">VFX · TTS · 声音 · 剪辑</text><text x="220" y="490" text-anchor="middle" class="small">每阶段一个主 Skill，可加独立验证者</text>
+    <text x="220" y="400" text-anchor="middle" class="h">专业 Skill 分配 / Assignment</text><text x="220" y="432" text-anchor="middle" class="t">编剧 · 导演 · 分镜 · 提示词</text><text x="220" y="460" text-anchor="middle" class="t">VFX · TTS · 声音 · 剪辑</text><text x="220" y="490" text-anchor="middle" class="small">管家返回主 Skill、补充项和边界</text>
 
     <rect x="475" y="360" width="330" height="155" rx="20" fill="#9a3412"/>
-    <text x="640" y="400" text-anchor="middle" class="h">运行选择 / Runtime Router</text><text x="640" y="432" text-anchor="middle" class="t">本地或云端 · 成本 · 授权</text><text x="640" y="460" text-anchor="middle" class="t">输入 · 输出 · 超时 · 回退</text><text x="640" y="490" text-anchor="middle" class="small">h3-runtime-router</text>
+    <text x="640" y="400" text-anchor="middle" class="h">计划落实 / Plan &amp; execution</text><text x="640" y="432" text-anchor="middle" class="t">依赖 · 交接 · 进度 · 质量门</text><text x="640" y="460" text-anchor="middle" class="t">本地或云端 · 成本 · 授权</text><text x="640" y="490" text-anchor="middle" class="small">总控写回状态并推进下一步</text>
 
     <rect x="895" y="340" width="330" height="195" rx="20" fill="#075985"/>
     <text x="1060" y="382" text-anchor="middle" class="h">执行后端 / Execution</text><text x="1060" y="418" text-anchor="middle" class="t">本地：ComfyUI API Runner</text><text x="1060" y="448" text-anchor="middle" class="t">云端：H3 Batch Runner</text><text x="1060" y="478" text-anchor="middle" class="t">实例：AutoDL Lifecycle</text><text x="1060" y="510" text-anchor="middle" class="small">保存 prompt ID，支持恢复和关机</text>

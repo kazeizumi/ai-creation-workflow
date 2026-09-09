@@ -5,8 +5,9 @@ description: Orchestrate an AI creative project from existing context and projec
 
 # AI creation workflow
 
-Own the project outcome. Do not replace professional skills: select and sequence
-them, preserve their outputs, and keep one auditable state across the project.
+Own the project plan and its execution. Ask `skill-governor` to allocate the
+best installed skill for each stage, then sequence those assignments, preserve
+their outputs, and keep one project state from planning through delivery.
 
 ## Choose the smallest control mode
 
@@ -24,11 +25,12 @@ them, preserve their outputs, and keep one auditable state across the project.
 2. Define the outcome, deliverables, constraints, acceptance evidence and items
    explicitly outside scope. Resolve only missing facts that materially change
    goal, scope, cost, permission or an irreversible result.
-3. Ask `skill-governor` for candidates only when a capability is missing,
-   duplicated, stale, or uncertain. A known professional candidate may be used
-   directly.
-4. Build a dependency graph. Each stage has one primary skill, optional
-   complementary skills, inputs, output contract, validator and retry rule.
+3. Send each stage's required output, inputs, constraints and acceptance evidence
+   to `skill-governor`. It returns the primary Skill, any necessary specialist,
+   the boundary between them and missing inputs.
+4. Build a dependency graph and write those assignments into the plan. Each
+   stage has one primary skill, optional complementary skills, inputs, output
+   contract, validator and retry rule.
 5. Execute the next ready stage. Save material outputs before moving downstream.
 6. Apply gates at creative lock, paid generation, external publication and
    other irreversible actions. A gate names the exact decision and its impact.
@@ -58,4 +60,6 @@ approval do not authorize a ComfyUI submission.
 Read [references/task-contract.md](references/task-contract.md) when creating a
 contract, [references/project-control.md](references/project-control.md) for a
 resumable project, and [references/gates-and-evidence.md](references/gates-and-evidence.md)
-before executing or closing a costly stage.
+before executing or closing a costly stage. Read
+[references/role-model.md](references/role-model.md) when allocating Skill
+ownership or handing a stage to the governor.
