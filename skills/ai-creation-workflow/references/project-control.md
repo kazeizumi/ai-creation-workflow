@@ -9,7 +9,9 @@ The project control file contains:
 - outcome and current status;
 - authoritative input inventory;
 - confirmed decisions and assumptions;
+- context tier, current-stage references and the reason for any expansion;
 - stage table with primary skill, dependencies, output and validation;
+- delegation decisions, bounded input packets and non-overlapping write scopes;
 - pending gates and their concrete choices;
 - external job IDs and retry state;
 - deliverable index and closeout evidence.

@@ -39,6 +39,27 @@ their outputs, and keep one project state from planning through delivery.
 8. Close out with final files, validation evidence, known limits and state.
    Record skill-use evidence only when it reflects an actual task result.
 
+## Token and delegation
+
+Use an adaptive context budget. Direct and light work starts compact; full work
+loads the project contract, decision index, current stage and its direct
+dependencies. Store stable facts once and pass references plus versions instead
+of copying artifact bodies into every handoff.
+
+Skill allocation remains owned by `skill-governor`. Reuse its accepted decision
+while the lane, input type, tool, constraints and mapping fingerprint are
+unchanged. Rescan or reroute only for a new capability, competing candidates,
+mapping drift, a tool change or a failed assignment. Load the full instructions
+only for the skill executing the current stage; do not preload future skills.
+
+Evaluate subagents only when a full workflow has at least two independent ready
+stages. Delegate a bounded artifact when inputs and acceptance are complete,
+writes and external resources do not overlap, no unresolved decision blocks it,
+parallel work is expected to reduce total cost, and current runtime rules allow
+delegation. Keep sequential work, shared-artifact edits, ambiguous requirements
+and small tasks in the root agent. The root owns user communication, integration
+and final validation.
+
 ## AI video routing
 
 Read [references/ai-video.md](references/ai-video.md) for the production graph.
@@ -62,4 +83,6 @@ contract, [references/project-control.md](references/project-control.md) for a
 resumable project, and [references/gates-and-evidence.md](references/gates-and-evidence.md)
 before executing or closing a costly stage. Read
 [references/role-model.md](references/role-model.md) when allocating Skill
-ownership or handing a stage to the governor.
+ownership or handing a stage to the governor. Read
+[references/token-and-delegation.md](references/token-and-delegation.md) when
+creating a full project, deciding whether to delegate, or reducing context use.

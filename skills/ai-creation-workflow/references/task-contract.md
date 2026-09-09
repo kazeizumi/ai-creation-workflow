@@ -11,6 +11,10 @@ Capture these fields before a full workflow starts:
 - `acceptance`: evidence that proves each deliverable is usable.
 - `outside_scope`: items intentionally left out.
 - `runtime_authority`: which external or paid actions are already authorized.
+- `context_policy`: compact, standard or expanded; include the concrete reason
+  when expanded context is required.
+- `delegation`: root by default; record a subagent only for an independent node
+  with a bounded packet, separate write scope and observable acceptance.
 
 Use `unknown` for a real unknown. Do not invent a value to make the contract
 look complete. Ask only when the unknown blocks the next useful stage.

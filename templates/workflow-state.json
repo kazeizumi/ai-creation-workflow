@@ -3,6 +3,21 @@
   "project_id": "replace-me",
   "status": "active",
   "updated_at": null,
+  "context_policy": {
+    "mode": "on",
+    "tier": "standard",
+    "canonical_contract": "00-project-control.md",
+    "load_scope": "current-stage-and-direct-dependencies",
+    "reuse_unchanged_routing": true,
+    "expand_when": null
+  },
+  "delegation_policy": {
+    "evaluate_when_ready_nodes_at_least": 2,
+    "default_owner": "root",
+    "status": "not_evaluated",
+    "reason": null,
+    "active_assignments": []
+  },
   "decisions": [],
   "stages": [
     {
@@ -11,6 +26,8 @@
       "primary_skill": "replace-me",
       "dependencies": [],
       "input_fingerprints": {},
+      "context_refs": [],
+      "owner": "root",
       "output": null,
       "validation": null,
       "status": "pending"

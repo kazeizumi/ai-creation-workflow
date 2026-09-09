@@ -26,6 +26,12 @@ The governor does not take over project scheduling or progress reporting.
 5. Return one primary skill, optional complementary skills, boundaries and
    missing inputs. The workflow controller writes this assignment into its plan.
 
+Reuse an accepted allocation when the lane, requested artifact, input type,
+tool, constraints and behavior fingerprints are unchanged. Do not rescan the
+whole portfolio for every project step. Rescan or compare candidates when a new
+capability appears, a mapping changes, the selected skill fails or the workflow
+controller reports a real gap.
+
 ## Portfolio maintenance
 
 ```bash

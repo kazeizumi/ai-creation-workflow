@@ -504,6 +504,12 @@ python skills/minimax-h3-cloud/scripts/run_batch.py path/to/batch.json --adopt-r
 
 治理工具负责提供证据和候选动作。合并、覆盖和退役仍要经过可恢复备份和明确的变更范围。
 
+## Token 消耗与子代理
+
+总控默认使用自适应精简策略：direct/light 只加载当前请求、权威输入和当前 Skill；full 读取项目契约、决策索引、当前阶段及直接依赖。稳定事实只保存一次，下游引用文件路径、版本或决策 ID，不重复复制正文。已确认且输入、工具、约束和行为指纹没有变化的 Skill 分配直接复用。
+
+子代理不是按 Skill 数量创建。只有 full 工作流中至少两个节点已经 `ready`，它们没有前后依赖、写入位置和外部资源互不冲突、输入与验收完整，并且并行收益大于上下文复制和结果合并成本时才使用。子代理只接收当前节点的精简任务包，根代理继续负责用户沟通、整合和最终验收。详细规则见 [`token-and-delegation.md`](skills/ai-creation-workflow/references/token-and-delegation.md)。
+
 ## 审批、重试和验收规则
 
 以下节点需要明确的当前范围：付费实例启动、真实 ComfyUI 提交、外部发布、不可恢复的 Skill 替换，以及会改变已锁定创作内容的决定。

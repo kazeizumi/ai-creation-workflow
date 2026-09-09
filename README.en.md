@@ -449,6 +449,23 @@ unrelated jobs. Inspect its queue before explicitly using
 `--adopt-running-instance`. Honor `keep_on: true` only when the current user
 request also authorizes `--allow-keep-on`.
 
+## Token use and subagents
+
+The controller uses an adaptive context budget. Direct and light work loads the
+current request, authoritative inputs and active skill. Full work adds the
+project contract, decision index, current stage and direct dependencies. Stable
+facts are stored once; downstream stages reference paths, versions and decision
+IDs instead of copying full artifact bodies. An accepted skill allocation is
+reused while its inputs, tool, constraints and behavior fingerprint are stable.
+
+Subagents are not created per skill. A full workflow may delegate only when at
+least two nodes are ready and independent, inputs and acceptance are complete,
+write targets and external resources do not overlap, and parallel work is
+expected to save more than context transfer and integration cost. Subagents
+receive a compact node packet; the root agent keeps user communication,
+integration and final validation. See
+[`token-and-delegation.md`](skills/ai-creation-workflow/references/token-and-delegation.md).
+
 ## Approval, recovery, and validation
 
 Require a concrete current scope before paid startup, real ComfyUI submission,
