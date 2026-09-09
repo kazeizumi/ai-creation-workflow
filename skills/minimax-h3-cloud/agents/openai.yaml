@@ -1,0 +1,4 @@
+interface:
+  display_name: "MiniMax H3 Cloud"
+  short_description: "Select and run installed H3 workflows on AutoDL"
+  default_prompt: "Use $minimax-h3-cloud to inspect my installed AutoDL workflows and prepare an H3 batch."

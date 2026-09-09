@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Creation Workflow"
+  short_description: "Control an AI creative project end to end"
+  default_prompt: "Use $ai-creation-workflow to plan and run this creative project end to end."

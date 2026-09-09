@@ -1,0 +1,4 @@
+interface:
+  display_name: "ComfyUI Local Runner"
+  short_description: "Run approved local API workflows by manifest"
+  default_prompt: "Use $comfyui-local-runner to validate or run this approved local ComfyUI manifest."

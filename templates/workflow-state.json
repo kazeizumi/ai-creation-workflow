@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "project_id": "replace-me",
+  "status": "active",
+  "updated_at": null,
+  "decisions": [],
+  "stages": [
+    {
+      "id": "S01",
+      "name": "replace-me",
+      "primary_skill": "replace-me",
+      "dependencies": [],
+      "input_fingerprints": {},
+      "output": null,
+      "validation": null,
+      "status": "pending"
+    }
+  ],
+  "gates": [],
+  "external_jobs": [],
+  "deliverables": []
+}

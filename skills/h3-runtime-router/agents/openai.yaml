@@ -1,0 +1,4 @@
+interface:
+  display_name: "H3 Runtime Router"
+  short_description: "Choose and control local or cloud H3 generation"
+  default_prompt: "Use $h3-runtime-router to run this H3 generation safely."

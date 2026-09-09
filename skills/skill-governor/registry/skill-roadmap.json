@@ -1,0 +1,65 @@
+{
+  "schema_version": 2,
+  "skills": {
+    "ai-creation-workflow": {
+      "lane": "project-control",
+      "stage": "end-to-end",
+      "brief": "Controls an AI creative project and its stage graph.",
+      "use_when": "The request spans dependent creative or execution stages.",
+      "boundary": "Delegates craft artifacts and backend operations to specialist skills.",
+      "role": "primary",
+      "review_level": "full-reviewed",
+      "overlap_group": []
+    },
+    "skill-governor": {
+      "lane": "skill-management",
+      "stage": "portfolio",
+      "brief": "Discovers, maps, evaluates and safely updates skills.",
+      "use_when": "A capability is missing, duplicated, stale or being maintained.",
+      "boundary": "Does not run the creative project or author specialist artifacts.",
+      "role": "primary",
+      "review_level": "full-reviewed",
+      "overlap_group": []
+    },
+    "h3-runtime-router": {
+      "lane": "video-runtime",
+      "stage": "runtime-selection",
+      "brief": "Chooses and authorizes local or cloud MiniMax H3 execution.",
+      "use_when": "An approved H3 segment is ready to render.",
+      "boundary": "Does not write prompts or submit directly without a backend adapter.",
+      "role": "primary",
+      "review_level": "full-reviewed",
+      "overlap_group": []
+    },
+    "comfyui-local-runner": {
+      "lane": "video-runtime",
+      "stage": "local-execution",
+      "brief": "Runs an API-format ComfyUI workflow on a local server.",
+      "use_when": "The local runtime is selected and its exact API workflow is available.",
+      "boundary": "Does not start ComfyUI, convert UI workflows or design prompts.",
+      "role": "specialist",
+      "review_level": "full-reviewed",
+      "overlap_group": ["h3-execution-backend"]
+    },
+    "minimax-h3-cloud": {
+      "lane": "video-runtime",
+      "stage": "cloud-execution",
+      "brief": "Runs an installed MiniMax H3 workflow on an AutoDL application instance.",
+      "use_when": "The cloud runtime is selected and the exact installed workflow is approved.",
+      "boundary": "Delegates instance lifecycle to autodl-app-instance.",
+      "role": "specialist",
+      "review_level": "full-reviewed",
+      "overlap_group": ["h3-execution-backend"]
+    },
+    "autodl-app-instance": {
+      "lane": "runtime-operations",
+      "stage": "instance-lifecycle",
+      "brief": "Lists, starts, discovers and stops AutoDL application instances.",
+      "use_when": "A cloud backend needs a current instance and panel endpoint.",
+      "boundary": "Does not submit generation jobs or release instances.",
+      "role": "complementary",
+      "review_level": "full-reviewed",
+      "overlap_group": []
+    }
+  }
+}

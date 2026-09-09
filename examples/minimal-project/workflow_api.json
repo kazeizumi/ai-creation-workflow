@@ -1,0 +1,7 @@
+{
+  "27": {"class_type": "PrimitiveNode", "inputs": {"value": 5}},
+  "28": {"class_type": "CLIPTextEncode", "inputs": {"prompt": "replace me"}},
+  "29": {"class_type": "PrimitiveNode", "inputs": {"megapixels": 1.0}},
+  "54": {"class_type": "PrimitiveNode", "inputs": {"value": 1.0}},
+  "66": {"class_type": "LoadImage", "inputs": {"image": "replace.png"}}
+}

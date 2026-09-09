@@ -1,0 +1,21 @@
+{
+  "instance_uuid": "pro-example1234",
+  "keep_on": false,
+  "poll_timeout_seconds": 3600,
+  "max_parallel_polls": 3,
+  "state_file": "work/cloud-batch-state.json",
+  "jobs": [
+    {
+      "name": "G01",
+      "workflow_id": "replace-with-exact-installed-workflow-id",
+      "output": "work/cloud-results/G01.mp4",
+      "input_values": {
+        "664:prompt": "self-contained ten-second prompt",
+        "132:value": 10,
+        "29:megapixels": 0.6,
+        "54:value": 1.5,
+        "137:image": {"$upload": "Picture_01.placeholder.txt"}
+      }
+    }
+  ]
+}

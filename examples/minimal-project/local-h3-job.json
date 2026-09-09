@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "base_url": "http://127.0.0.1:8188",
+  "workflow": "workflow_api.json",
+  "output_dir": "work/local-results",
+  "poll_seconds": 5,
+  "timeout_seconds": 7200,
+  "input_values": {
+    "28:prompt": {"$text_file": "Prompt_EN.txt"},
+    "27:value": 10,
+    "29:megapixels": 0.6,
+    "54:value": 1.5,
+    "66:image": {"$upload": "Picture_01.placeholder.txt"}
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "AutoDL App Instance"
+  short_description: "Secure AutoDL instance lifecycle and panel discovery"
+  default_prompt: "Use $autodl-app-instance to inspect or manage my AutoDL application instance."

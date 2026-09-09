@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Governor"
+  short_description: "Audit, route, update, and evolve skill libraries"
+  default_prompt: "Use $skill-governor to audit and improve this skill library."

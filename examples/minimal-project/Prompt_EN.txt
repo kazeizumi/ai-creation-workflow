@@ -1,0 +1,2 @@
+A self-contained ten-second cinematic scene with a defined opening state,
+physical transition, and stable ending state.
