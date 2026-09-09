@@ -60,12 +60,18 @@ delegation. Keep sequential work, shared-artifact edits, ambiguous requirements
 and small tasks in the root agent. The root owns user communication, integration
 and final validation.
 
-## AI video routing
+## Domain pack routing
 
-Read [references/ai-video.md](references/ai-video.md) for the production graph.
-When the execution model is MiniMax H3, delegate runtime selection and generation
-authorization to `h3-runtime-router`. Prompt quality, references and storyboard
-approval do not authorize a ComfyUI submission.
+Select a domain pack only after the project contract is clear. A pack contributes
+stage templates, specialist lanes, domain gates and runtime adapters; it never
+owns the overall project or replaces `skill-governor`. Validate installed packs
+with `python scripts/domain_pack.py validate` and read
+[references/domain-packs.md](references/domain-packs.md) before adding one.
+
+Match the request to a pack's triggers, load only that pack and its linked guide,
+and send each declared specialist lane or runtime capability to
+`skill-governor`. The pack names required capabilities; the governor maps them
+to current installed Skills.
 
 ## State rules
 
@@ -82,6 +88,8 @@ Read [references/task-contract.md](references/task-contract.md) when creating a
 contract, [references/project-control.md](references/project-control.md) for a
 resumable project, and [references/gates-and-evidence.md](references/gates-and-evidence.md)
 before executing or closing a costly stage. Read
+[references/intake-and-gates.md](references/intake-and-gates.md) when requirements
+are incomplete or a gate may be needed. Read
 [references/role-model.md](references/role-model.md) when allocating Skill
 ownership or handing a stage to the governor. Read
 [references/token-and-delegation.md](references/token-and-delegation.md) when

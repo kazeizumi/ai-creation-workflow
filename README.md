@@ -1,10 +1,10 @@
-# AI 创作流程：从 Skill 管理到 H3 出片
+# AI 创作流程：Skill 管家与工作流总控
 
 [English](README.en.md)
 
-做一条 AI 视频，麻烦往往不在某一个步骤。剧本放在一个目录，参考图在另一个目录；提示词改过几版，却没人记得最终用了哪版；本地显卡跑不动临时换云端，生成失败后又不知道该重试还是接着轮询。Skill 装得越多，选哪个也会变成新的问题。
+跨阶段 AI 项目常见的问题很实际：需求没有问清就开始做，材料和决策散在不同位置，Skill 越装越多却没人管理，执行中又不断停下来确认。方向一旦错了，后面的计划和产物都会跟着返工。
 
-这个仓库整理的是一套实际可执行的工作方式。它会记住项目要交什么、当前做到哪一步、下一步该用哪个 Skill，以及真正生成前还缺哪些确认。H3 既能交给本机 ComfyUI，也能调用 AutoDL 实例里已经装好的工作流。
+这个仓库把两件事放到一起：技能管家负责发现、分配、评分、学习、更新和可恢复退役；工作流总控负责摸清需求、列计划、推进步骤、管理依赖、控制必要门禁并验收交付。AI 视频是第一个完整领域包，H3 可以交给本机 ComfyUI，也可以调用 AutoDL 实例里已经装好的工作流。
 
 你可以从一句需求开始，让它组织完整项目；也可以只拿其中一部分来用，比如整理 Skill、跑一份本地 ComfyUI 清单，或者提交一批云端 H3 任务。编剧、导演、提示词、VFX 和声音仍由各自的专业 Skill 完成，这个仓库负责把步骤和结果接起来。
 
@@ -41,7 +41,7 @@
 
 AI 视频只是总控可以调用的一个领域包。剧本、分镜、提示词、VFX、TTS 和声音等专业 Skill 按阶段接入；H3 只是其中一条执行路线。
 
-后续架构与实现任务已经整理为 [`docs/pending-execution-plan.md`](docs/pending-execution-plan.md)。计划重点是双核心、可插拔领域包、前置需求摸清、低打扰门禁、可恢复 Skill 退役和运行可靠性；当前状态为待执行。
+双核心、可插拔领域包、前置需求摸清、低打扰门禁、可恢复 Skill 退役和运行可靠性已经按 [`docs/pending-execution-plan.md`](docs/pending-execution-plan.md) 落实。该文档同时保留设计依据和验收场景。
 
 ## 快速安装
 
@@ -113,9 +113,19 @@ templates/workflow-state.json
 
 总控会依次完成：复用已有材料、定义交付和验收、建立阶段依赖、请技能管家分配专业 Skill、执行阶段、进入质量或费用门、验证实际产物、记录交付和使用证据。
 
+需求入口会先确认目标、用途、交付物、当前阶段、权威输入、约束、验收证据、可执行范围和明确不做的事项。只有缺失信息会改变方向、范围、费用、权限或验收时才提问，并尽量一次问齐。展示计划本身不等于等待审批；读取、草稿、Skill 交接、dry-run、验证和同一任务恢复会继续执行。规则见 [`intake-and-gates.md`](skills/ai-creation-workflow/references/intake-and-gates.md)。
+
 阶段状态包括 `pending`、`ready`、`running`、`blocked`、`review`、`accepted` 和 `failed`。上游锁定内容变化后，下游阶段应先标记为失效，再重新执行。
 
 ### AI 视频默认阶段
+
+这些阶段来自 `ai-video` 领域包。领域包只提供阶段模板、专业能力域、门禁和运行适配器，总控仍管理整个项目，技能管家仍负责选择具体 Skill。可查看或验证已装领域包：
+
+```powershell
+python skills/ai-creation-workflow/scripts/domain_pack.py list
+python skills/ai-creation-workflow/scripts/domain_pack.py validate
+python skills/ai-creation-workflow/scripts/domain_pack.py show --pack ai-video
+```
 
 ```text
 目标与材料
@@ -201,7 +211,7 @@ python skills/skill-governor/scripts/skill_registry.py record-outcome `
   --artifact artifacts/project-001/runtime-contract.md
 ```
 
-审计会把 Skill 分到 `keep-core`（核心）、`keep-specialist`（专项）、`trial-review`（试用）、`observe`（观察）、`compare`（对比）、`repair`（修复）、`quarantine-review`（隔离审查）或 `protected`（受保护）。更新版本会保留旧证据，但新版本重新试用。
+审计会把 Skill 分到 `keep-core`（核心）、`keep-core-probation`（核心待补证据）、`keep-specialist`（专项）、`trial-review`（试用）、`observe`（观察）、`compare`（对比）、`repair`（修复）、`compatibility-review`（兼容性审查）、`quarantine-review`（隔离审查）或 `protected`（受保护）。更新版本会保留旧证据，但新版本重新试用。
 
 记录真实使用和生成审计报告：
 
@@ -228,6 +238,14 @@ python skills/skill-governor/scripts/skill_audit.py audit `
 ### 退役和淘汰门禁
 
 只有在替代者已通过测试、独特能力已经迁移、同题 A/B 不劣、近期使用和历史依赖已核对、许可证允许整合，并且有日期化可恢复备份时，技能管家才会提出退役建议。移动、停用、合并或删除仍需用户明确批准；默认移入归档，并写入 `registry/skill-retirements.json`，不做永久删除。
+
+```powershell
+python skills/skill-governor/scripts/skill_transaction.py prepare-retire --help
+python skills/skill-governor/scripts/skill_transaction.py retire --help
+python skills/skill-governor/scripts/skill_transaction.py restore-retired --help
+```
+
+`prepare-retire` 只生成包含当前指纹、替代者、证据和归档位置的计划，不移动文件。审阅后用 `--approved retire` 执行归档；恢复时用 `--approved restore`。系统 Skill 与插件缓存中的 Skill 受保护。
 
 ### 安全更新和回滚
 
@@ -520,11 +538,13 @@ python skills/minimax-h3-cloud/scripts/run_batch.py path/to/batch.json --adopt-r
 
 超时后优先恢复既有 `prompt_id` 或外部任务 ID。只有确认旧任务没有提交或已经失败且不会继续运行时，才创建新任务。
 
+云端批处理发现已有状态文件时默认拒绝再次提交。使用 `--resume` 会核对实例、任务名、工作流、输出和输入指纹，只轮询状态中已有的 `prompt_id`；任何缺少 `prompt_id` 的不确定任务都会停止并要求先检查远端队列。
+
 ## 仓库目录
 
 ```text
 skills/
-  ai-creation-workflow/   项目总控
+  ai-creation-workflow/   项目总控、领域包清单和校验器
   skill-governor/         Skill 治理
   h3-runtime-router/      H3 运行选择
   comfyui-local-runner/   本地执行器
@@ -534,6 +554,7 @@ templates/                项目状态与生成契约模板
 examples/minimal-project/ 可离线 dry-run 的最小示例
 scripts/install.py        带备份的安装器
 scripts/verify_release.py 发布前检查
+.github/workflows/ci.yml Windows/Linux 离线验证
 ```
 
 ## 验证和开发
@@ -542,7 +563,11 @@ scripts/verify_release.py 发布前检查
 
 ```powershell
 python scripts/verify_release.py
+python skills/skill-governor/scripts/skill_registry.py package-check
 python skills/skill-governor/scripts/test_skill_governor.py
+python skills/skill-governor/scripts/test_skill_lifecycle.py
+python skills/ai-creation-workflow/scripts/test_domain_pack.py
+python scripts/test_runtime_guards.py
 python skills/comfyui-local-runner/scripts/run_local.py examples/minimal-project/local-h3-job.json --dry-run
 python skills/minimax-h3-cloud/scripts/run_batch.py examples/minimal-project/cloud-h3-batch.json --dry-run
 ```

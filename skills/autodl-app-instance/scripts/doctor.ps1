@@ -34,12 +34,27 @@ function Write-Check {
     }
 }
 
-$python = Get-Command python -ErrorAction SilentlyContinue
-Write-Check ($null -ne $python) 'Python is available'
+$pythonCommand = $null
+$pythonPrefix = @()
+foreach ($candidate in @(
+    @{ Name = 'py'; Prefix = @('-3') },
+    @{ Name = 'python'; Prefix = @() }
+)) {
+    $found = Get-Command $candidate.Name -ErrorAction SilentlyContinue
+    if ($found) {
+        $path = if ($found.Path) { $found.Path } else { $found.Source }
+        & $path @($candidate.Prefix) -c 'import sys; print(sys.executable)' *> $null
+        if ($LASTEXITCODE -eq 0) {
+            $pythonCommand = $path
+            $pythonPrefix = @($candidate.Prefix)
+            break
+        }
+    }
+}
+Write-Check ($null -ne $pythonCommand) 'Python is executable'
 
-if ($python) {
-    $pythonPath = if ($python.Path) { $python.Path } else { $python.Source }
-    & $pythonPath -c 'import httpx' 2>$null
+if ($pythonCommand) {
+    & $pythonCommand @pythonPrefix -c 'import httpx' 2>$null
     Write-Check ($LASTEXITCODE -eq 0) 'Python package httpx is available'
 }
 
@@ -60,7 +75,7 @@ Write-Check (Test-Path -LiteralPath $instanceTool) 'autodl_instance.py exists'
 
 if ($Probe -and $missing -eq 0) {
     Write-Host '[PROBE] Calling the read-only AutoDL instance-list endpoint'
-    & $pythonPath $instanceTool list
+    & $pythonCommand @pythonPrefix $instanceTool list
     if ($LASTEXITCODE -ne 0) {
         $missing = 1
     }

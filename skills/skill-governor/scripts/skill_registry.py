@@ -832,6 +832,33 @@ def command_validate(args: argparse.Namespace) -> int:
     return 1 if errors or (args.strict and warnings) else 0
 
 
+def command_package_check(args: argparse.Namespace) -> int:
+    """Validate distributable skills against the roadmap without machine state."""
+    package_root = Path(args.package_root).resolve()
+    roadmap_data = read_json(Path(args.roadmap), {"schema_version": 2, "skills": {}})
+    roadmap = roadmap_data.get("skills", {})
+    errors: list[str] = []
+    discovered = discover_standard(package_root, "package")
+    by_key: dict[str, list[dict]] = defaultdict(list)
+    for item in discovered:
+        by_key[item["key"]].append(item)
+    for key, items in sorted(by_key.items()):
+        if len(items) > 1:
+            errors.append(f"duplicate packaged skill name: {key}")
+    for key in sorted(set(roadmap) - set(by_key)):
+        errors.append(f"roadmap entry without packaged skill: {key}")
+    for key in sorted(set(by_key) - set(roadmap)):
+        errors.append(f"packaged skill without roadmap entry: {key}")
+    for key, route in roadmap.items():
+        fields = validate_route(route) if isinstance(route, dict) else list(ROUTE_REQUIRED)
+        if fields:
+            errors.append(f"invalid route {key}: {','.join(fields)}")
+    print(f"Package validation: skills={len(discovered)} roadmap={len(roadmap)} errors={len(errors)}")
+    for error in errors:
+        print(f"ERROR\t{error}")
+    return 1 if errors else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--registry", default=str(DEFAULT_REGISTRY))
@@ -893,6 +920,12 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--config", default=str(DEFAULT_CODEX_CONFIG))
     validate.add_argument("--no-plugins", action="store_true")
     validate.set_defaults(func=command_validate)
+
+    package_check = subparsers.add_parser(
+        "package-check", help="validate packaged skills against the roadmap without installed registry state"
+    )
+    package_check.add_argument("--package-root", default=str(HERE.parents[1]))
+    package_check.set_defaults(func=command_package_check)
     return parser
 
 

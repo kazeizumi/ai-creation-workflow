@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -166,11 +167,17 @@ def run(manifest_path: Path, *, dry_run: bool, allow_remote: bool) -> int:
     deadline = time.monotonic() + float(manifest.get("timeout_seconds", 7200))
     interval = max(1.0, float(manifest.get("poll_seconds", 5)))
     history: dict | None = None
+    started = time.monotonic()
+    next_heartbeat = started + 30
     while time.monotonic() < deadline:
         payload = request_json(base_url + "/history/" + urllib.parse.quote(prompt_id), timeout=30)
         if prompt_id in payload:
             history = payload[prompt_id]
             break
+        now = time.monotonic()
+        if now >= next_heartbeat:
+            print(f"Waiting for prompt_id={prompt_id}; elapsed={int(now - started)}s", file=sys.stderr)
+            next_heartbeat = now + 30
         time.sleep(interval)
     if history is None:
         state["status"] = "timeout"

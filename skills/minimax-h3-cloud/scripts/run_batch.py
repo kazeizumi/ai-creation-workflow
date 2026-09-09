@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
@@ -83,7 +84,15 @@ def atomic_json(path: Path, value: dict) -> None:
     os.replace(temporary, path)
 
 
-def validate_manifest(manifest: dict, manifest_path: Path, args: argparse.Namespace) -> dict:
+def job_fingerprint(job: dict) -> str:
+    payload = {"workflow_id": job.get("workflow_id"), "input_values": job.get("input_values")}
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def validate_manifest(
+    manifest: dict, manifest_path: Path, args: argparse.Namespace, resume_state: dict | None = None
+) -> dict:
     uuid = str(manifest.get("instance_uuid") or "").strip()
     if not re_uuid(uuid):
         raise BatchError("instance_uuid must be an exact AutoDL application ID such as pro-xxxxxxxxxxxx")
@@ -114,7 +123,15 @@ def validate_manifest(manifest: dict, manifest_path: Path, args: argparse.Namesp
         output_key = os.path.normcase(str(output))
         if output_key in outputs:
             raise BatchError(f"Duplicate output path: {output}")
-        if output.exists() and not overwrite:
+        resume_job = next(
+            (item for item in (resume_state or {}).get("jobs", []) if item.get("name") == name), None
+        )
+        completed_resume_output = bool(
+            resume_job
+            and resume_job.get("status") == "succeeded"
+            and os.path.normcase(str(Path(str(resume_job.get("output", ""))).resolve())) == output_key
+        )
+        if output.exists() and not overwrite and not completed_resume_output:
             raise BatchError(f"Output already exists and overwrite_outputs is false: {output}")
         names.add(name)
         outputs.add(output_key)
@@ -154,6 +171,7 @@ def state_skeleton(config: dict) -> dict:
                 "name": job["name"],
                 "workflow_id": job["workflow_id"],
                 "output": job["output"],
+                "input_fingerprint": job_fingerprint(job),
                 "status": "pending",
             }
             for job in config["jobs"]
@@ -170,21 +188,60 @@ def update_job_state(state: dict, name: str, **values: object) -> None:
     raise BatchError(f"Unknown state job {name}")
 
 
+def validate_resume_state(config: dict, state: dict) -> None:
+    if state.get("instance_uuid") != config["instance_uuid"]:
+        raise BatchError("State instance_uuid does not match the manifest.")
+    saved = {str(item.get("name")): item for item in state.get("jobs", []) if isinstance(item, dict)}
+    if set(saved) != {job["name"] for job in config["jobs"]}:
+        raise BatchError("State job names do not match the manifest.")
+    for job in config["jobs"]:
+        item = saved[job["name"]]
+        if item.get("workflow_id") != job["workflow_id"] or os.path.normcase(
+            str(Path(str(item.get("output", ""))).resolve())
+        ) != os.path.normcase(job["output"]):
+            raise BatchError(f"State identity mismatch for job {job['name']}.")
+        saved_fingerprint = item.get("input_fingerprint")
+        if saved_fingerprint and saved_fingerprint != job_fingerprint(job):
+            raise BatchError(f"State input fingerprint mismatch for job {job['name']}.")
+
+
+def resumable_tasks(config: dict, state: dict) -> list[dict]:
+    jobs = {job["name"]: job for job in config["jobs"]}
+    tasks: list[dict] = []
+    for item in state["jobs"]:
+        output = Path(str(item["output"]))
+        if item.get("status") == "succeeded" and output.exists():
+            continue
+        prompt_id = str(item.get("prompt_id") or "")
+        if not prompt_id:
+            raise BatchError(
+                f"Cannot safely resume {item['name']}: no prompt_id was recorded. "
+                "Inspect the remote queue before creating another paid job."
+            )
+        tasks.append({**jobs[item["name"]], "prompt_id": prompt_id, "status": "submitted"})
+    return tasks
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest")
     parser.add_argument("--instance-tool", default="")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--resume", action="store_true", help="poll recorded prompt IDs instead of submitting again")
     parser.add_argument("--adopt-running-instance", action="store_true")
     parser.add_argument("--allow-keep-on", action="store_true")
     args = parser.parse_args()
 
     manifest_path = Path(args.manifest).resolve()
     instance_tool = locate_instance_tool(args.instance_tool)
-    config = validate_manifest(load_manifest(manifest_path), manifest_path, args)
-    state_path = Path(config["state_file"])
-    state = state_skeleton(config)
-    atomic_json(state_path, state)
+    manifest = load_manifest(manifest_path)
+    state_raw = str(manifest.get("state_file") or "batch-state.json")
+    state_path = resolve_path(state_raw, manifest_path.parent)
+    resume_state = load_manifest(state_path) if args.resume else None
+    config = validate_manifest(manifest, manifest_path, args, resume_state)
+    state = resume_state or state_skeleton(config)
+    if resume_state:
+        validate_resume_state(config, state)
 
     if args.dry_run:
         print(
@@ -203,13 +260,28 @@ def main() -> int:
         )
         return 0
 
+    if state_path.exists() and not args.resume:
+        raise BatchError(f"State file already exists: {state_path}. Use --resume to preserve recorded prompt IDs.")
+    if args.resume and resume_state is None:
+        raise BatchError(f"Cannot resume without state file: {state_path}")
+    if not args.resume:
+        atomic_json(state_path, state)
+
+    tasks: list[dict] = resumable_tasks(config, state) if args.resume else []
+    if args.resume and not tasks:
+        state["phase"] = "complete"
+        state.pop("error", None)
+        atomic_json(state_path, state)
+        print(json.dumps(state, ensure_ascii=False, indent=2))
+        return 0
+
     booted = False
     return_code = 1
     try:
         current = run_instance_tool(
             instance_tool, "status", "--uuid", config["instance_uuid"]
         )
-        if current.get("status") == "running" and not args.adopt_running_instance:
+        if current.get("status") == "running" and not (args.adopt_running_instance or args.resume):
             raise BatchError(
                 "Instance is already running. Inspect its queue, then pass "
                 "--adopt-running-instance if this batch may own its shutdown."
@@ -219,24 +291,25 @@ def main() -> int:
         )
         booted = True
         base_url = workflow_tool.safe_base_url(str(boot["panel_url"]))
-        state["phase"] = "submitting"
+        state["phase"] = "resuming" if args.resume else "submitting"
         state["panel_url"] = base_url
+        state.pop("error", None)
         atomic_json(state_path, state)
 
-        tasks: list[dict] = []
-        with workflow_tool.make_client(300) as client:
-            for job in config["jobs"]:
-                task = workflow_tool.submit_job(
-                    client, base_url, job, Path(config["base_dir"])
-                )
-                tasks.append(task)
-                update_job_state(
-                    state,
-                    job["name"],
-                    status="submitted",
-                    prompt_id=task["prompt_id"],
-                )
-                atomic_json(state_path, state)
+        if not args.resume:
+            with workflow_tool.make_client(300) as client:
+                for job in config["jobs"]:
+                    task = workflow_tool.submit_job(
+                        client, base_url, job, Path(config["base_dir"])
+                    )
+                    tasks.append(task)
+                    update_job_state(
+                        state,
+                        job["name"],
+                        status="submitted",
+                        prompt_id=task["prompt_id"],
+                    )
+                    atomic_json(state_path, state)
 
         state["phase"] = "polling"
         atomic_json(state_path, state)
@@ -306,4 +379,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except (BatchError, OSError, ValueError) as exc:
+        log(f"ERROR: {exc}")
+        raise SystemExit(2)

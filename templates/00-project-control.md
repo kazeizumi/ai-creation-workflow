@@ -20,6 +20,13 @@
 - Expansion reason:
 - Reusable routing decision:
 
+## Plan status
+
+- Status: draft | ready | executing | blocked | completed
+- Current stage:
+- Next consequential gate:
+- Existing authorization scope:
+
 ## Stage graph
 
 | ID | Stage | Primary skill | Depends on | Output | Validation | Status |

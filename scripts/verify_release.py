@@ -6,6 +6,7 @@ from __future__ import annotations
 import ast
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -13,7 +14,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 IGNORED = {".git", "__pycache__", ".pytest_cache", "work", "results", "backups"}
 JWT = re.compile(r"\beyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\b")
-PRIVATE_PATH = re.compile(r"(?i)(?:[A-Z]:\\Users\\" + "ka" + r"ze|D:\\AI\\|/home/[^/]+/)")
+PRIVATE_PATH = re.compile(
+    r"(?i)(?:[A-Z]:[\\/](?:Users|Documents and Settings)[\\/][^\\/\s]+[\\/]|/(?:home|Users)/[^/\s]+/)"
+)
 LOCAL_LINK = re.compile(r"\]\((?!https?://|#)([^)]+)\)")
 
 
@@ -75,7 +78,18 @@ def main() -> int:
                 errors.append(f"skills/{skill.name}: missing SKILL.md")
             else:
                 errors.extend(validate_skill(skill))
-    forbidden = [path.relative_to(ROOT) for path in ROOT.rglob("*") if path.name in {"__pycache__", ".pytest_cache"}]
+    forbidden: list[Path] = []
+    try:
+        tracked = subprocess.run(
+            ["git", "ls-files", "-z"], cwd=ROOT, check=True, capture_output=True
+        ).stdout.decode("utf-8", errors="replace").split("\0")
+        forbidden = [
+            Path(item)
+            for item in tracked
+            if item and any(part in {"__pycache__", ".pytest_cache"} for part in Path(item).parts)
+        ]
+    except (OSError, subprocess.CalledProcessError):
+        forbidden = [path.relative_to(ROOT) for path in ROOT.rglob("*") if path.name in {"__pycache__", ".pytest_cache"}]
     errors.extend(f"forbidden generated directory: {path}" for path in forbidden)
     if errors:
         print(f"Release verification failed: {len(errors)} issue(s)")

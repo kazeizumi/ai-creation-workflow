@@ -39,6 +39,7 @@ python scripts/skill_registry.py scan --no-plugins
 python scripts/skill_registry.py report --include-unready
 python scripts/skill_registry.py duplicates
 python scripts/skill_registry.py validate
+python scripts/skill_registry.py package-check
 python scripts/skill_audit.py audit --output-md skill-audit.md
 ```
 
@@ -59,6 +60,12 @@ Never overwrite a locally modified skill with a blind copy. Use
 `scripts/skill_transaction.py prepare` for a three-way comparison, resolve all
 conflicts in staging, then create a verified backup before activation. Preserve
 source commit, license and local modifications in `skill-sources.json`.
+
+For retirement, run `prepare-retire` with usage and dependency evidence first.
+Review its plan, then run `retire --approved retire`. The command verifies the
+unchanged skill, moves it to a dated archive and records the transaction in
+`skill-retirements.json`. Use `restore-retired --approved restore` to reactivate
+that verified archive. System and plugin-cache skills are protected.
 
 Read [references/governance.md](references/governance.md) before merging,
 disabling or replacing a skill, [references/evolution.md](references/evolution.md)

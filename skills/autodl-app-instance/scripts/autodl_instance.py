@@ -261,16 +261,17 @@ def panel_probe(base_url: str, timeout: int = 8) -> tuple[str, dict | None]:
 
 def discover_panel(uuid: str, timeout: int) -> str:
     deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        candidates = panel_candidates(instance_snapshot(uuid))
-        if candidates:
-            with ThreadPoolExecutor(max_workers=min(8, len(candidates))) as pool:
-                results = list(pool.map(panel_probe, candidates))
-            for candidate, (state, _) in zip(candidates, results):
-                log(f"panel {candidate}: {state}")
-                if state == "ready":
-                    return candidate.rstrip("/")
-        time.sleep(5)
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        while time.monotonic() < deadline:
+            candidates = panel_candidates(instance_snapshot(uuid))
+            if candidates:
+                remaining = max(1, min(8, int(deadline - time.monotonic())))
+                results = list(pool.map(lambda url: panel_probe(url, remaining), candidates))
+                for candidate, (state, _) in zip(candidates, results):
+                    log(f"panel {candidate}: {state}")
+                    if state == "ready":
+                        return candidate.rstrip("/")
+            time.sleep(min(5, max(0, deadline - time.monotonic())))
     raise ApiError("Timed out discovering a ready H3 bridge panel from the current snapshot")
 
 

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "pack_id": "longform-writing",
+  "name": "Long-form writing",
+  "description": "Structures research, drafting and editorial acceptance for long documents.",
+  "triggers": ["long-form article", "report", "book chapter", "white paper"],
+  "guide": "references/task-contract.md",
+  "stage_templates": [
+    {"id": "brief-lock", "output": "audience, purpose, scope and acceptance contract", "depends_on": [], "optional": false},
+    {"id": "source-map", "output": "source and evidence map", "depends_on": ["brief-lock"], "optional": false},
+    {"id": "outline", "output": "approved structure", "depends_on": ["brief-lock"], "optional": false},
+    {"id": "draft", "output": "complete draft", "depends_on": ["outline", "source-map"], "optional": false},
+    {"id": "editorial-validation", "output": "acceptance evidence and final document", "depends_on": ["draft"], "optional": false}
+  ],
+  "artifact_contracts": {
+    "brief-lock": {"inputs": ["goal", "audience", "constraints"], "output": "writing brief", "acceptance": ["purpose, scope and deliverables are explicit"]},
+    "source-map": {"inputs": ["writing brief", "available sources"], "output": "source and evidence map", "acceptance": ["claims have an evidence plan"]},
+    "outline": {"inputs": ["writing brief"], "output": "document outline", "acceptance": ["structure covers the promised result"]},
+    "draft": {"inputs": ["outline", "source map"], "output": "complete draft", "acceptance": ["all required sections are present"]},
+    "editorial-validation": {"inputs": ["complete draft"], "output": "final document and review evidence", "acceptance": ["brief and acceptance criteria pass"]}
+  },
+  "specialist_lanes": ["research", "writing", "editing", "document-production"],
+  "required_gates": [
+    {"id": "outline-lock", "when": "a structural choice would cause substantial downstream rewriting"},
+    {"id": "publication-authorization", "when": "the document will be published or sent externally"}
+  ],
+  "runtime_adapters": [],
+  "failure_policy": "Return to the earliest stale dependency and preserve accepted sections."
+}

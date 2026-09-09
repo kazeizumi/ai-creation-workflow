@@ -1,19 +1,18 @@
-# AI creation workflow: from skill management to H3 renders
+# AI creation workflow: skill governance and project orchestration
 
 [中文主文档](README.md)
 
-Making an AI video gets messy long before the final render. The script is in one
-folder, reference images are somewhere else, and nobody remembers which prompt
-version produced the clip. A local GPU may run out of memory halfway through,
-while a cloud retry can quietly create another paid job. Installing more skills
-helps, but it also creates a new problem: deciding which one should handle each
-step.
+Cross-stage AI projects often go wrong for ordinary reasons: work starts before
+the requirement is clear, decisions and source material become scattered, the
+skill library grows without ownership, and execution keeps stopping for routine
+confirmation. A wrong direction then turns every downstream step into rework.
 
-This repository packages the working method used to keep those pieces together.
-It records what the project must deliver, where the work currently stands, which
-skill owns the next stage, and what still needs approval before a real render.
-MiniMax H3 jobs can run through local ComfyUI or through a workflow that is
-already installed on an AutoDL instance.
+This repository joins two responsibilities. The skill governor discovers,
+routes, scores, learns, updates and safely retires skills. The workflow
+controller clarifies the request, writes the plan, executes its dependencies,
+uses only consequential gates, and validates delivery. AI video is the first
+complete domain pack; its H3 jobs can use local ComfyUI or an installed AutoDL
+workflow.
 
 You can use the whole process for a production, or take only the part you need:
 skill cleanup, a repeatable local ComfyUI job, or a cloud H3 batch. Writing,
@@ -59,6 +58,10 @@ AI video is one domain pack inside the workflow controller. Screenwriting,
 direction, prompting, VFX, TTS, and sound skills join the stages they own; H3 is
 one execution route among them.
 
+Domain packs declare reusable stages, capability lanes, gates and runtime
+adapters. They do not replace the controller or choose installed skills. Inspect
+them with `domain_pack.py list`, `validate`, or `show --pack ai-video`.
+
 ## Install
 
 Python 3.11 or newer is recommended. Preview the installation first:
@@ -99,7 +102,11 @@ and H3 manifest without private media.
 
 ```bash
 python scripts/verify_release.py
+python skills/skill-governor/scripts/skill_registry.py package-check
 python skills/skill-governor/scripts/test_skill_governor.py
+python skills/skill-governor/scripts/test_skill_lifecycle.py
+python skills/ai-creation-workflow/scripts/test_domain_pack.py
+python scripts/test_runtime_guards.py
 python skills/comfyui-local-runner/scripts/run_local.py examples/minimal-project/local-h3-job.json --dry-run
 python skills/minimax-h3-cloud/scripts/run_batch.py examples/minimal-project/cloud-h3-batch.json --dry-run
 ```
@@ -140,6 +147,12 @@ The project contract records the objective, exact deliverables, authoritative
 inputs, constraints, locked decisions, acceptance evidence, excluded scope, and
 existing authorization. Each stage declares one primary skill, dependencies,
 an output contract, validation, and a retry rule.
+
+Intake asks only for missing facts that can change direction, scope, cost,
+permission, routing, or acceptance. It combines related unknowns into one
+question. Showing a plan is separate from approval. Reads, drafts, skill
+handoffs, dry runs, validation and recovery of the same job proceed without an
+extra gate. See [`intake-and-gates.md`](skills/ai-creation-workflow/references/intake-and-gates.md).
 
 Stage states are `pending`, `ready`, `running`, `blocked`, `review`, `accepted`,
 and `failed`. If an upstream locked decision changes, mark affected downstream
@@ -220,8 +233,9 @@ python skills/skill-governor/scripts/skill_registry.py record-outcome \
   --artifact artifacts/project-001/runtime-contract.md
 ```
 
-The audit can return `keep-core`, `keep-specialist`, `trial-review`, `observe`,
-`compare`, `repair`, `quarantine-review`, or `protected`. An update keeps the
+The audit can return `keep-core`, `keep-core-probation`, `keep-specialist`,
+`trial-review`, `observe`, `compare`, `repair`, `compatibility-review`,
+`quarantine-review`, or `protected`. An update keeps the
 old evidence as history but sends the new version back to probation.
 
 ### Record use and audit the portfolio
@@ -251,6 +265,11 @@ integration, and a dated recoverable backup exists. Moving, disabling, merging,
 or deleting still requires explicit user approval. The default action is a
 dated archive recorded in `registry/skill-retirements.json`, never permanent
 automatic deletion.
+
+Use `prepare-retire` to create a reviewed plan without moving files. Run
+`retire --approved retire` to archive the unchanged verified tree, and
+`restore-retired --approved restore` to reactivate it. System and plugin-cache
+skills are protected.
 
 ### Update safely
 
@@ -479,15 +498,22 @@ inspect duration, dimensions, frame rate, codec, audio streams, visible content,
 and the creative acceptance criteria. A shot plan or prompt review proves only
 that the materials are ready.
 
+The cloud batch runner refuses a new submission when its state file already
+exists. `--resume` verifies the batch identity and polls only recorded
+`prompt_id` values. A job without a recorded ID stops for remote queue
+inspection before any new paid submission.
+
 ## Repository layout
 
 ```text
 skills/                      Six independently installable skills
+  ai-creation-workflow/      Controller plus domain-pack manifests and validator
 templates/                   Project state and generation-contract templates
 examples/minimal-project/    Offline dry-run examples without private media
 scripts/install.py           Installer with backups
 scripts/verify_release.py    Release and secret hygiene checks
 docs/images/                 Bilingual explanatory diagrams
+.github/workflows/ci.yml     Windows and Linux offline validation
 ```
 
 ## Publishing boundaries

@@ -3,6 +3,17 @@
   "project_id": "replace-me",
   "status": "active",
   "updated_at": null,
+  "plan_status": "draft",
+  "requirements": {
+    "goal": null,
+    "intended_use": null,
+    "deliverables": [],
+    "authoritative_inputs": [],
+    "constraints": [],
+    "acceptance_evidence": [],
+    "outside_scope": []
+  },
+  "authorizations": [],
   "context_policy": {
     "mode": "on",
     "tier": "standard",

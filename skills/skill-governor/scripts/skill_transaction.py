@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 from collections import Counter
 from datetime import datetime, timezone
@@ -34,6 +35,15 @@ def ensure_distinct(paths: list[Path]) -> None:
     normalized = [os.path.normcase(str(path)) for path in paths]
     if len(set(normalized)) != len(normalized):
         raise ValueError("Baseline, current, upstream, staging, manifest, and backup targets must be distinct.")
+
+
+def ensure_outside_tree(root: Path, targets: list[Path]) -> None:
+    for target in targets:
+        try:
+            target.relative_to(root)
+        except ValueError:
+            continue
+        raise ValueError(f"Control or archive path must stay outside the skill tree: {target}")
 
 
 def iter_files(root: Path) -> dict[str, Path]:
@@ -268,6 +278,152 @@ def command_rollback(args: argparse.Namespace) -> int:
     return 0
 
 
+def protected_skill_path(path: Path) -> bool:
+    folded = [part.casefold() for part in path.parts]
+    return ".system" in folded or ("plugins" in folded and "cache" in folded)
+
+
+def declared_skill_name(current: Path) -> str:
+    text = (current / "SKILL.md").read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"(?m)^name:\s*([a-z0-9-]{1,64})\s*$", text)
+    return match.group(1) if match else ""
+
+
+def ensure_retirement_identity(current: Path, skill_name: str, retirements: Path) -> None:
+    if not re.fullmatch(r"[a-z0-9-]{1,64}", skill_name):
+        raise ValueError("Skill name must use lowercase letters, digits, and hyphens.")
+    if current.name != skill_name or declared_skill_name(current) != skill_name:
+        raise ValueError("Skill name must match both the directory and SKILL.md frontmatter.")
+    if retirements.exists():
+        record = read_json(retirements).get("skills", {}).get(skill_name)
+        if record and record.get("status") == "retired" and not record.get("reactivated_at"):
+            raise ValueError(f"Skill already has an active retirement record: {skill_name}")
+
+
+def command_prepare_retire(args: argparse.Namespace) -> int:
+    current = safe_path(args.current, must_exist=True)
+    archive_root = safe_path(args.archive_root)
+    plan_path = safe_path(args.plan)
+    retirements = safe_path(args.retirements)
+    ensure_distinct([current, archive_root, plan_path, retirements])
+    ensure_outside_tree(current, [archive_root, plan_path, retirements])
+    if protected_skill_path(current):
+        raise ValueError("System and plugin-cache skills cannot be retired by this command.")
+    if not (current / "SKILL.md").is_file():
+        raise ValueError("Current path is not a skill directory.")
+    ensure_retirement_identity(current, args.skill_name, retirements)
+    if plan_path.exists():
+        raise FileExistsError(plan_path)
+    payload = {
+        "schema_version": 1,
+        "status": "ready",
+        "created_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
+        "skill_name": args.skill_name,
+        "current": str(current),
+        "current_tree_hash": tree_hash(current),
+        "archive_root": str(archive_root),
+        "retirements": str(retirements),
+        "replacement": args.replacement or None,
+        "evidence": args.evidence,
+    }
+    write_json(plan_path, payload)
+    print(f"Retirement prepared: skill={args.skill_name}; plan={plan_path}; no files moved")
+    return 0
+
+
+def command_retire(args: argparse.Namespace) -> int:
+    if args.approved != "retire":
+        raise ValueError("Retirement requires --approved retire after reviewing the plan.")
+    plan_path = safe_path(args.plan, must_exist=True)
+    plan = read_json(plan_path)
+    if plan.get("status") != "ready":
+        raise RuntimeError("Retirement plan is not ready.")
+    current = safe_path(plan["current"], must_exist=True)
+    archive_root = safe_path(plan["archive_root"])
+    retirements = safe_path(plan["retirements"])
+    ensure_distinct([current, archive_root, plan_path, retirements])
+    ensure_outside_tree(current, [archive_root, plan_path, retirements])
+    if protected_skill_path(current):
+        raise ValueError("System and plugin-cache skills cannot be retired by this command.")
+    ensure_retirement_identity(current, str(plan.get("skill_name", "")), retirements)
+    expected = plan.get("current_tree_hash")
+    if tree_hash(current) != expected:
+        raise RuntimeError("Skill changed after retirement preparation; prepare again.")
+    archive_root.mkdir(parents=True, exist_ok=True)
+    destination = archive_root / f"{plan['skill_name']}-{now_stamp()}"
+    if destination.exists():
+        raise FileExistsError(destination)
+    previous_registry = retirements.read_bytes() if retirements.exists() else None
+    original_plan = json.loads(json.dumps(plan))
+    shutil.move(str(current), str(destination))
+    try:
+        if tree_hash(destination) != expected:
+            raise RuntimeError("Archived skill failed hash verification.")
+        data = read_json(retirements) if retirements.exists() else {"schema_version": 1, "skills": {}}
+        data.setdefault("schema_version", 1)
+        data.setdefault("skills", {})[plan["skill_name"]] = {
+            "status": "retired",
+            "replacement": plan.get("replacement"),
+            "evidence": plan.get("evidence"),
+            "original_path": str(current),
+            "archive_path": str(destination),
+            "tree_hash": expected,
+            "retired_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
+            "plan_path": str(plan_path),
+            "reactivated_at": None,
+        }
+        write_json(retirements, data)
+        plan["status"] = "executed"
+        plan["archive_path"] = str(destination)
+        write_json(plan_path, plan)
+    except Exception:
+        if not current.exists() and destination.exists():
+            shutil.move(str(destination), str(current))
+        if previous_registry is None:
+            if retirements.exists():
+                retirements.unlink()
+        else:
+            temporary = retirements.with_name(f".{retirements.name}.{os.getpid()}.rollback")
+            temporary.write_bytes(previous_registry)
+            temporary.replace(retirements)
+        write_json(plan_path, original_plan)
+        raise
+    print(f"Retired {plan['skill_name']}; archive={destination}")
+    return 0
+
+
+def command_restore_retired(args: argparse.Namespace) -> int:
+    if args.approved != "restore":
+        raise ValueError("Restore requires --approved restore.")
+    retirements = safe_path(args.retirements, must_exist=True)
+    data = read_json(retirements)
+    record = data.get("skills", {}).get(args.skill_name)
+    if not record or record.get("status") != "retired" or record.get("reactivated_at"):
+        raise ValueError(f"No active retirement record for {args.skill_name}")
+    archive = safe_path(record["archive_path"], must_exist=True)
+    target = safe_path(args.target or record["original_path"])
+    ensure_distinct([archive, target, retirements])
+    if target.exists():
+        raise FileExistsError(target)
+    expected = record.get("tree_hash")
+    if tree_hash(archive) != expected:
+        raise RuntimeError("Retired archive failed hash verification.")
+    shutil.move(str(archive), str(target))
+    try:
+        if tree_hash(target) != expected:
+            raise RuntimeError("Restored skill failed hash verification.")
+        record["status"] = "active"
+        record["reactivated_at"] = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+        record["restored_path"] = str(target)
+        write_json(retirements, data)
+    except Exception:
+        if not archive.exists() and target.exists():
+            shutil.move(str(target), str(archive))
+        raise
+    print(f"Restored {args.skill_name}; target={target}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -299,6 +455,28 @@ def build_parser() -> argparse.ArgumentParser:
     rollback.add_argument("--current", required=True)
     rollback.add_argument("--backup-manifest", required=True)
     rollback.set_defaults(func=command_rollback)
+
+    prepare_retire = commands.add_parser("prepare-retire", help="write a retirement plan without moving the skill")
+    prepare_retire.add_argument("--current", required=True)
+    prepare_retire.add_argument("--archive-root", required=True)
+    prepare_retire.add_argument("--retirements", required=True)
+    prepare_retire.add_argument("--plan", required=True)
+    prepare_retire.add_argument("--skill-name", required=True)
+    prepare_retire.add_argument("--replacement", default="")
+    prepare_retire.add_argument("--evidence", required=True)
+    prepare_retire.set_defaults(func=command_prepare_retire)
+
+    retire = commands.add_parser("retire", help="move a reviewed skill into a verified archive")
+    retire.add_argument("--plan", required=True)
+    retire.add_argument("--approved", required=True)
+    retire.set_defaults(func=command_retire)
+
+    restore = commands.add_parser("restore-retired", help="restore a verified retired skill archive")
+    restore.add_argument("--skill-name", required=True)
+    restore.add_argument("--retirements", required=True)
+    restore.add_argument("--target")
+    restore.add_argument("--approved", required=True)
+    restore.set_defaults(func=command_restore_retired)
     return parser
 
 

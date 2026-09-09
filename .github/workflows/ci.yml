@@ -1,0 +1,39 @@
+name: offline-validation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.13"]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install cloud runner dependency
+        run: python -m pip install -r skills/minimax-h3-cloud/requirements.txt
+      - name: Verify package
+        run: python scripts/verify_release.py
+      - name: Validate packaged skill routes
+        run: python skills/skill-governor/scripts/skill_registry.py package-check
+      - name: Test skill governance
+        run: python skills/skill-governor/scripts/test_skill_governor.py
+      - name: Test skill lifecycle
+        run: python skills/skill-governor/scripts/test_skill_lifecycle.py
+      - name: Test domain packs
+        run: python skills/ai-creation-workflow/scripts/test_domain_pack.py
+      - name: Test runtime guards
+        run: python scripts/test_runtime_guards.py
+      - name: Local runner dry run
+        run: python skills/comfyui-local-runner/scripts/run_local.py examples/minimal-project/local-h3-job.json --dry-run
+      - name: Cloud runner dry run
+        run: python skills/minimax-h3-cloud/scripts/run_batch.py examples/minimal-project/cloud-h3-batch.json --dry-run

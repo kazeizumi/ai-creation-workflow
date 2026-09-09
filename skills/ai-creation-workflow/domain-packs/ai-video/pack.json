@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "pack_id": "ai-video",
+  "name": "AI video production",
+  "description": "Plans and executes an AI video project while keeping model and runtime choices replaceable.",
+  "triggers": ["ai video", "video generation", "H3", "ComfyUI"],
+  "guide": "references/ai-video.md",
+  "stage_templates": [
+    {"id": "content-lock", "output": "approved content unit or script", "depends_on": [], "optional": false},
+    {"id": "shot-design", "output": "story shots and generation segments", "depends_on": ["content-lock"], "optional": false},
+    {"id": "prompt-and-materials", "output": "model-ready prompts and references", "depends_on": ["shot-design"], "optional": false},
+    {"id": "runtime-selection", "output": "authorized backend and execution contract", "depends_on": ["prompt-and-materials"], "optional": false},
+    {"id": "generation", "output": "generated media plus job identity", "depends_on": ["runtime-selection"], "optional": false},
+    {"id": "media-validation", "output": "technical and visual validation evidence", "depends_on": ["generation"], "optional": false}
+  ],
+  "artifact_contracts": {
+    "content-lock": {"inputs": ["creative goal", "authoritative story material"], "output": "approved content unit or script", "acceptance": ["goal and locked content agree"]},
+    "shot-design": {"inputs": ["approved content"], "output": "story shots and generation segments", "acceptance": ["each segment has a complete state transition"]},
+    "prompt-and-materials": {"inputs": ["shot design", "available references"], "output": "model-ready prompts and reference order", "acceptance": ["inputs and reference roles are explicit"]},
+    "runtime-selection": {"inputs": ["approved generation package", "cost and hardware constraints"], "output": "authorized backend contract", "acceptance": ["runtime, scope, output and failure fallback are fixed"]},
+    "generation": {"inputs": ["authorized backend contract"], "output": "generated media and job identity", "acceptance": ["job identity and state are persisted"]},
+    "media-validation": {"inputs": ["generated media"], "output": "technical and visual validation evidence", "acceptance": ["media properties and creative criteria are checked"]}
+  },
+  "specialist_lanes": ["video-direction", "prompt-authoring", "video-runtime", "media-validation"],
+  "required_gates": [
+    {"id": "creative-lock", "when": "downstream generation would make script or shot changes costly"},
+    {"id": "generation-authorization", "when": "a paid, external or GPU generation job will be submitted"}
+  ],
+  "runtime_adapters": ["runtime-selection", "local-workflow-execution", "cloud-workflow-execution"],
+  "failure_policy": "Preserve job identity and state; query the same job before any resubmission."
+}
