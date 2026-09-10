@@ -19,9 +19,10 @@ def write(path: Path, payload: dict) -> None:
 
 def run(*args: str, expect: int = 0) -> str:
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
+        [sys.executable, "-X", "utf8", str(SCRIPT), *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     if result.returncode != expect:

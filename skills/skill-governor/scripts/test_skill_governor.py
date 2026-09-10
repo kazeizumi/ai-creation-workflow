@@ -20,14 +20,26 @@ def write(path: Path, value: str) -> None:
 
 
 def run(*args: str) -> str:
-    result = subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, "-X", "utf8", str(SCRIPT), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
     if result.returncode:
         raise AssertionError(result.stdout + result.stderr)
     return result.stdout
 
 
 def run_audit(*args: str) -> str:
-    result = subprocess.run([sys.executable, str(AUDIT_SCRIPT), *args], capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, "-X", "utf8", str(AUDIT_SCRIPT), *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
     if result.returncode:
         raise AssertionError(result.stdout + result.stderr)
     return result.stdout

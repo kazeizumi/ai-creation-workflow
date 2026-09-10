@@ -14,9 +14,10 @@ SCRIPT = Path(__file__).with_name("skill_transaction.py")
 
 def run(*args: str) -> str:
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
+        [sys.executable, "-X", "utf8", str(SCRIPT), *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     if result.returncode:
@@ -26,9 +27,10 @@ def run(*args: str) -> str:
 
 def run_fail(*args: str) -> str:
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
+        [sys.executable, "-X", "utf8", str(SCRIPT), *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     if result.returncode == 0:

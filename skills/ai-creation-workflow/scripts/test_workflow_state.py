@@ -14,9 +14,10 @@ SCRIPT = Path(__file__).with_name("workflow_state.py")
 
 def run(*args: str, expect: int = 0) -> str:
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
+        [sys.executable, "-X", "utf8", str(SCRIPT), *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     if result.returncode != expect:

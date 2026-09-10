@@ -19,10 +19,12 @@ import run_batch  # noqa: E402
 
 def dry_run(manifest: Path) -> None:
     result = subprocess.run(
-        [sys.executable, str(RUNNER), str(manifest), "--dry-run"],
+        [sys.executable, "-X", "utf8", str(RUNNER), str(manifest), "--dry-run"],
         cwd=ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        check=False,
     )
     if result.returncode:
         raise AssertionError(result.stdout + result.stderr)
@@ -30,10 +32,12 @@ def dry_run(manifest: Path) -> None:
 
 def resume(manifest: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(RUNNER), str(manifest), "--resume"],
+        [sys.executable, "-X", "utf8", str(RUNNER), str(manifest), "--resume"],
         cwd=ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        check=False,
     )
 
 

@@ -30,6 +30,8 @@ def main() -> int:
         result = subprocess.run(
             [
                 sys.executable,
+                "-X",
+                "utf8",
                 str(INSTALLER),
                 "--target",
                 str(target),
@@ -42,6 +44,7 @@ def main() -> int:
             cwd=ROOT,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=False,
         )
         if result.returncode:
