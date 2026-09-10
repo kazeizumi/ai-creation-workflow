@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
   <title id="title">Skill governance lifecycle</title>
-  <desc id="desc">Bilingual lifecycle from discovery and mapping through use, evidence, audit, safe update, backup, and rollback.</desc>
+  <desc id="desc">Bilingual lifecycle from capability fit and bounded discovery through candidate adoption, evidence, safe update, retirement, and rollback.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111827"/><stop offset="1" stop-color="#312e81"/></linearGradient>
     <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#a5b4fc"/></marker>
@@ -9,7 +9,7 @@
   </defs>
   <rect width="1280" height="720" rx="28" fill="url(#bg)"/>
   <text x="640" y="52" text-anchor="middle" class="title">Skill 治理循环 / Skill Governance Lifecycle</text>
-  <text x="640" y="80" text-anchor="middle" class="sub">发现能力不等于证明质量；更新前先保留来源、基线和回滚路径</text>
+  <text x="640" y="80" text-anchor="middle" class="sub">先判断胜任与重复，再决定完整安装、参考补强、自建或不采用</text>
 
   <g filter="url(#s)">
     <g><circle cx="190" cy="210" r="92" fill="#1d4ed8"/><circle cx="155" cy="170" r="20" fill="#dbeafe"/><text x="155" y="176" text-anchor="middle" class="n">1</text><text x="190" y="210" text-anchor="middle" class="h">发现 / Discover</text><text x="190" y="238" text-anchor="middle" class="t">共享 · 系统 · 插件</text></g>
@@ -22,6 +22,6 @@
     <g><circle cx="190" cy="500" r="92" fill="#be123c"/><circle cx="155" cy="460" r="20" fill="#ffe4e6"/><text x="155" y="466" text-anchor="middle" class="n">8</text><text x="190" y="500" text-anchor="middle" class="h">备份与回滚</text><text x="190" y="528" text-anchor="middle" class="t">Backup &amp; rollback</text></g>
   </g>
   <path class="line" d="M282 205L378 202"/><path class="line" d="M562 200H668"/><path class="line" d="M852 202L958 207"/><path class="line" d="M1050 302V408"/><path class="line" d="M964 520L852 540"/><path class="line" d="M668 550H562"/><path class="line" d="M378 540L276 520"/><path class="line" d="M190 408V302"/>
-  <rect x="455" y="300" width="370" height="120" rx="20" fill="#1e1b4b" stroke="#818cf8" stroke-width="2"/>
-  <text x="640" y="338" text-anchor="middle" class="h">保留 · 观察 · 隔离 · 退役</text><text x="640" y="370" text-anchor="middle" class="t">评分和重复只是审查信号</text><text x="640" y="397" text-anchor="middle" class="t">淘汰前验证替代者，并保留可恢复备份</text>
+  <rect x="430" y="292" width="420" height="138" rx="20" fill="#1e1b4b" stroke="#818cf8" stroke-width="2"/>
+  <text x="640" y="326" text-anchor="middle" class="h">Fit → 本地 → 在线 → 采纳决策</text><text x="640" y="357" text-anchor="middle" class="t">完整安装 · 参考补强 · 自建 · 不采用</text><text x="640" y="386" text-anchor="middle" class="t">staging · probation · 版本证据</text><text x="640" y="414" text-anchor="middle" class="t">退役前验证替代者，并保留可恢复备份</text>
 </svg>

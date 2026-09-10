@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "request_id": "replace-me",
+  "deliverable": "replace-me",
+  "lane": "replace-me",
+  "stage": "replace-me",
+  "input_types": [],
+  "target_tools": [],
+  "constraints": [],
+  "acceptance": ["replace-me"],
+  "permissions": [],
+  "reusability": "repeatable",
+  "non_obvious_risk": true,
+  "search_terms": [],
+  "provided_candidate": null
+}

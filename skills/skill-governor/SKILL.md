@@ -32,6 +32,34 @@ whole portfolio for every project step. Rescan or compare candidates when a new
 capability appears, a mapping changes, the selected skill fails or the workflow
 controller reports a real gap.
 
+For an auditable full-workflow decision, create a capability request from
+`assets/templates/capability-request.json`, then use
+`scripts/capability_gap.py assess`. It produces `fit | partial | gap`, a request
+fingerprint and at most five local candidates. Read
+[references/capability-gap.md](references/capability-gap.md) only when the
+result is not a reusable fit or the user supplied a candidate.
+
+## Capability gaps and candidate adoption
+
+Search in this order: unchanged accepted decision, functional roadmap, local
+installed metadata, then online metadata only for a real unresolved gap. A
+user-supplied name, path, archive or URL skips discovery search but never skips
+duplicate, unique-gain, license, safety, dependency, permission or compatibility
+review. Online discovery never installs or activates its result.
+
+Every final third-party candidate receives one recommendation:
+`full_install`, `reference_strengthen`, or `reject`. Prefer reference
+strengthening when the candidate substantially overlaps an existing Skill;
+extract only licensed, decision-changing material and do not create a duplicate
+directory. Prefer full installation only for a distinct, measurable capability;
+stage and test it, then start it as `probation`. Reject candidates with no real
+gain or unresolved safety/license blockers.
+
+Honor an explicit user choice without asking again. If the user requested a
+Skill but did not choose the adoption mode, show the recommendation and ask one
+compact question: "完整安装，还是参考后补强现有功能？" The choice authorizes the
+mode, not bypassing a failed safety or license gate.
+
 ## Portfolio maintenance
 
 ```bash
@@ -61,11 +89,14 @@ Never overwrite a locally modified skill with a blind copy. Use
 conflicts in staging, then create a verified backup before activation. Preserve
 source commit, license and local modifications in `skill-sources.json`.
 
-For retirement, run `prepare-retire` with usage and dependency evidence first.
+For retirement, copy `assets/templates/retirement-evidence.json`, complete every
+replacement, A/B, unique-capability, usage, dependency and license field, then
+run `prepare-retire --evidence-file ...`.
 Review its plan, then run `retire --approved retire`. The command verifies the
-unchanged skill, moves it to a dated archive and records the transaction in
-`skill-retirements.json`. Use `restore-retired --approved restore` to reactivate
-that verified archive. System and plugin-cache skills are protected.
+unchanged evidence contract and Skill fingerprint, moves it to a dated archive
+and records the transaction in `skill-retirements.json`. Use `restore-retired
+--approved restore` to reactivate that verified archive. System and plugin-cache
+skills are protected.
 
 Read [references/governance.md](references/governance.md) before merging,
 disabling or replacing a skill, [references/evolution.md](references/evolution.md)

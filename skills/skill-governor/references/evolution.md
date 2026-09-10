@@ -88,4 +88,9 @@ python skills/skill-governor/scripts/skill_audit.py audit `
 
 管家只生成候选清单和影响说明。移动、停用、合并或删除仍需用户明确批准；实际淘汰优先移入日期化归档，不永久删除，并写入 `registry/skill-retirements.json`，让后续审计知道它是“主动可恢复退役”而不是从未安装。
 
+执行 `prepare-retire` 前复制并完整填写
+`assets/templates/retirement-evidence.json`。任一替代测试、独特能力处置、
+同题 A/B、近期使用、项目依赖或许可证字段缺失，计划都不能进入
+`ready`；准备后证据文件或 Skill 行为指纹发生变化，也必须重新准备。
+
 建议在新装或更新后做结构、来源、重叠和前向测试；真实任务后按需记录归因证据；技能库明显变大或用户要求时做全库审计；淘汰前做深度审阅、A/B、依赖检查和用户闸门。不自动创建定时任务。

@@ -29,8 +29,14 @@ jobs:
         run: python skills/skill-governor/scripts/test_skill_governor.py
       - name: Test skill lifecycle
         run: python skills/skill-governor/scripts/test_skill_lifecycle.py
+      - name: Test capability gap and adoption
+        run: python skills/skill-governor/scripts/test_capability_gap.py
       - name: Test domain packs
         run: python skills/ai-creation-workflow/scripts/test_domain_pack.py
+      - name: Test workflow state
+        run: python skills/ai-creation-workflow/scripts/test_workflow_state.py
+      - name: Test standalone installation
+        run: python scripts/test_installation.py
       - name: Test runtime guards
         run: python scripts/test_runtime_guards.py
       - name: Local runner dry run

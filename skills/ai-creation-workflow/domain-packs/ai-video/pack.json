@@ -27,5 +27,10 @@
     {"id": "generation-authorization", "when": "a paid, external or GPU generation job will be submitted"}
   ],
   "runtime_adapters": ["runtime-selection", "local-workflow-execution", "cloud-workflow-execution"],
+  "execution_modes": {
+    "single-shot-fast-path": "Use for one approved, self-contained segment without cross-shot continuity.",
+    "project-path": "Use for multiple dependent shots, continuity, handoffs or resumable production."
+  },
+  "batch_strategy": "Run one representative high-risk sample before expanding a costly or failure-propagating batch.",
   "failure_policy": "Preserve job identity and state; query the same job before any resubmission."
 }

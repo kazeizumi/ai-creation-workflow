@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "candidate": {
+    "identifier": "replace-me",
+    "source": "user-provided",
+    "url": null
+  },
+  "target_existing_skill": "replace-me-or-null",
+  "candidate_behavior_fingerprint": null,
+  "existing_behavior_fingerprint": null,
+  "overlap_findings": [],
+  "review": {
+    "overlap_score": 0.0,
+    "unique_gain": [],
+    "independent_boundary": false,
+    "license_status": "unknown",
+    "safety_status": "unknown",
+    "dependencies": [],
+    "permissions": [],
+    "evidence": []
+  }
+}

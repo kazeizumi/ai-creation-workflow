@@ -16,8 +16,9 @@ their outputs, and keep one project state from planning through delivery.
   checkpoints.
 - **Full:** cross-stage production, paid generation, multiple deliverables,
   repeated runs, handoffs, or work that may resume later. Create a project
-  control file from `templates/00-project-control.md` and a state file from
-  `templates/workflow-state.json`.
+  control file from `assets/templates/00-project-control.md` and a state file
+  from `assets/templates/workflow-state.json`. These assets travel with an
+  independently installed Skill; do not depend on repository-level templates.
 
 ## Run the project
 
@@ -25,9 +26,11 @@ their outputs, and keep one project state from planning through delivery.
 2. Define the outcome, deliverables, constraints, acceptance evidence and items
    explicitly outside scope. Resolve only missing facts that materially change
    goal, scope, cost, permission or an irreversible result.
-3. Send each stage's required output, inputs, constraints and acceptance evidence
-   to `skill-governor`. It returns the primary Skill, any necessary specialist,
-   the boundary between them and missing inputs.
+3. Send each stage's required output, inputs, target tool, constraints,
+   permissions and acceptance evidence to `skill-governor`. It returns the
+   primary Skill, any necessary specialist, the boundary between them and
+   missing inputs. If it returns `partial` or `gap`, let it finish the bounded
+   local/online/create-or-improve loop before continuing this stage.
 4. Build a dependency graph and write those assignments into the plan. Each
    stage has one primary skill, optional complementary skills, inputs, output
    contract, validator and retry rule.
@@ -75,10 +78,12 @@ to current installed Skills.
 
 ## State rules
 
-- A stage is `pending`, `ready`, `running`, `blocked`, `review`, `accepted`, or
-  `failed`; do not mark it accepted without its declared evidence.
+- A stage is `pending`, `ready`, `running`, `blocked`, `review`, `accepted`,
+  `failed`, or `stale`; do not mark it accepted without its declared evidence.
 - Store stable decisions once and reference them downstream. When a decision
-  changes, mark every dependent stage stale before rerunning it.
+  changes, mark only stages that consumed the changed input and their real
+  dependants `stale` before rerunning them. Use
+  `scripts/workflow_state.py invalidate` for a persisted state file.
 - Retries preserve the original job identity and result directory. Never submit
   a second paid job merely because polling timed out; query by prompt or job ID.
 - Keep secrets and private media outside project state. Store references to

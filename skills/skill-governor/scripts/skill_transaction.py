@@ -13,7 +13,6 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 IGNORED_PARTS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", "node_modules"}
 IGNORED_SUFFIXES = {".pyc", ".pyo", ".tmp"}
 
@@ -300,6 +299,37 @@ def ensure_retirement_identity(current: Path, skill_name: str, retirements: Path
             raise ValueError(f"Skill already has an active retirement record: {skill_name}")
 
 
+def validate_retirement_evidence(payload: dict) -> list[str]:
+    errors: list[str] = []
+    if payload.get("schema_version") != 1:
+        errors.append("schema_version must be 1")
+    replacement = payload.get("replacement")
+    if not isinstance(replacement, dict) or not str(replacement.get("skill", "")).strip():
+        errors.append("replacement.skill is required")
+    elif replacement.get("status") != "tested":
+        errors.append("replacement.status must be tested")
+    replacement_test = payload.get("replacement_test")
+    if not isinstance(replacement_test, dict) or replacement_test.get("result") != "pass" or not str(replacement_test.get("artifact", "")).strip():
+        errors.append("replacement_test requires a passing artifact")
+    unique = payload.get("unique_capabilities")
+    if not isinstance(unique, dict) or unique.get("disposition") not in {"migrated", "none", "accepted_loss"} or not str(unique.get("evidence", "")).strip():
+        errors.append("unique_capabilities requires disposition and evidence")
+    comparison = payload.get("ab_comparison")
+    if not isinstance(comparison, dict) or comparison.get("result") != "replacement-not-worse" or not str(comparison.get("artifact", "")).strip():
+        errors.append("ab_comparison requires replacement-not-worse and an artifact")
+    for field in ("recent_usage", "project_dependencies"):
+        row = payload.get(field)
+        if not isinstance(row, dict) or row.get("checked") is not True or not str(row.get("evidence", "")).strip():
+            errors.append(f"{field} requires checked=true and evidence")
+    dependencies = payload.get("project_dependencies", {})
+    if isinstance(dependencies, dict) and not isinstance(dependencies.get("remaining", []), list):
+        errors.append("project_dependencies.remaining must be a list")
+    license_review = payload.get("license_review")
+    if not isinstance(license_review, dict) or license_review.get("status") not in {"compatible", "not-applicable"} or not str(license_review.get("evidence", "")).strip():
+        errors.append("license_review requires compatible/not-applicable status and evidence")
+    return errors
+
+
 def command_prepare_retire(args: argparse.Namespace) -> int:
     current = safe_path(args.current, must_exist=True)
     archive_root = safe_path(args.archive_root)
@@ -312,10 +342,19 @@ def command_prepare_retire(args: argparse.Namespace) -> int:
     if not (current / "SKILL.md").is_file():
         raise ValueError("Current path is not a skill directory.")
     ensure_retirement_identity(current, args.skill_name, retirements)
+    evidence_path = safe_path(args.evidence_file, must_exist=True)
+    ensure_outside_tree(current, [evidence_path])
+    evidence_contract = read_json(evidence_path)
+    evidence_errors = validate_retirement_evidence(evidence_contract)
+    if evidence_errors:
+        raise ValueError("Retirement evidence incomplete: " + "; ".join(evidence_errors))
+    replacement = evidence_contract["replacement"]["skill"]
+    if args.replacement and args.replacement != replacement:
+        raise ValueError("--replacement does not match evidence replacement.skill")
     if plan_path.exists():
         raise FileExistsError(plan_path)
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "ready",
         "created_at": datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds"),
         "skill_name": args.skill_name,
@@ -323,8 +362,11 @@ def command_prepare_retire(args: argparse.Namespace) -> int:
         "current_tree_hash": tree_hash(current),
         "archive_root": str(archive_root),
         "retirements": str(retirements),
-        "replacement": args.replacement or None,
-        "evidence": args.evidence,
+        "replacement": replacement,
+        "evidence_note": args.evidence or None,
+        "evidence_path": str(evidence_path),
+        "evidence_hash": file_hash(evidence_path),
+        "evidence_contract": evidence_contract,
     }
     write_json(plan_path, payload)
     print(f"Retirement prepared: skill={args.skill_name}; plan={plan_path}; no files moved")
@@ -346,6 +388,15 @@ def command_retire(args: argparse.Namespace) -> int:
     if protected_skill_path(current):
         raise ValueError("System and plugin-cache skills cannot be retired by this command.")
     ensure_retirement_identity(current, str(plan.get("skill_name", "")), retirements)
+    evidence_contract = plan.get("evidence_contract")
+    if not isinstance(evidence_contract, dict):
+        raise RuntimeError("Retirement plan lacks structured evidence; prepare again.")
+    evidence_errors = validate_retirement_evidence(evidence_contract)
+    if evidence_errors:
+        raise RuntimeError("Retirement evidence is no longer valid: " + "; ".join(evidence_errors))
+    evidence_path = safe_path(str(plan.get("evidence_path", "")), must_exist=True)
+    if file_hash(evidence_path) != plan.get("evidence_hash"):
+        raise RuntimeError("Retirement evidence changed after preparation; prepare again.")
     expected = plan.get("current_tree_hash")
     if tree_hash(current) != expected:
         raise RuntimeError("Skill changed after retirement preparation; prepare again.")
@@ -364,7 +415,9 @@ def command_retire(args: argparse.Namespace) -> int:
         data.setdefault("skills", {})[plan["skill_name"]] = {
             "status": "retired",
             "replacement": plan.get("replacement"),
-            "evidence": plan.get("evidence"),
+            "evidence_note": plan.get("evidence_note"),
+            "evidence_contract": evidence_contract,
+            "evidence_hash": plan.get("evidence_hash"),
             "original_path": str(current),
             "archive_path": str(destination),
             "tree_hash": expected,
@@ -463,7 +516,8 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_retire.add_argument("--plan", required=True)
     prepare_retire.add_argument("--skill-name", required=True)
     prepare_retire.add_argument("--replacement", default="")
-    prepare_retire.add_argument("--evidence", required=True)
+    prepare_retire.add_argument("--evidence-file", required=True)
+    prepare_retire.add_argument("--evidence", default="", help="optional human-readable note; structured evidence remains mandatory")
     prepare_retire.set_defaults(func=command_prepare_retire)
 
     retire = commands.add_parser("retire", help="move a reviewed skill into a verified archive")

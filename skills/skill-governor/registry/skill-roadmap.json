@@ -7,6 +7,8 @@
       "brief": "Controls an AI creative project and its stage graph.",
       "use_when": "The request spans dependent creative or execution stages.",
       "boundary": "Delegates craft artifacts and backend operations to specialist skills.",
+      "input_types": ["brief", "project-files", "any"],
+      "target_tools": ["any"],
       "role": "primary",
       "review_level": "full-reviewed",
       "overlap_group": []
@@ -17,6 +19,8 @@
       "brief": "Discovers, maps, evaluates and safely updates skills.",
       "use_when": "A capability is missing, duplicated, stale or being maintained.",
       "boundary": "Does not run the creative project or author specialist artifacts.",
+      "input_types": ["capability-request", "skill-directory", "candidate-metadata"],
+      "target_tools": ["local-files", "github-api"],
       "role": "primary",
       "review_level": "full-reviewed",
       "overlap_group": []
@@ -27,6 +31,8 @@
       "brief": "Chooses and authorizes local or cloud MiniMax H3 execution.",
       "use_when": "An approved H3 segment is ready to render.",
       "boundary": "Does not write prompts or submit directly without a backend adapter.",
+      "input_types": ["h3-generation-contract", "approved-generation-package"],
+      "target_tools": ["comfyui", "autodl"],
       "role": "specialist",
       "review_level": "full-reviewed",
       "overlap_group": []
@@ -37,6 +43,8 @@
       "brief": "Runs an API-format ComfyUI workflow on a local server.",
       "use_when": "The local runtime is selected and its exact API workflow is available.",
       "boundary": "Does not start ComfyUI, convert UI workflows or design prompts.",
+      "input_types": ["comfyui-api-workflow", "local-job-manifest"],
+      "target_tools": ["comfyui"],
       "role": "specialist",
       "review_level": "full-reviewed",
       "overlap_group": ["h3-execution-backend"]
@@ -47,6 +55,8 @@
       "brief": "Runs an installed MiniMax H3 workflow on an AutoDL application instance.",
       "use_when": "The cloud runtime is selected and the exact installed workflow is approved.",
       "boundary": "Delegates instance lifecycle to autodl-app-instance.",
+      "input_types": ["cloud-batch-manifest", "installed-workflow"],
+      "target_tools": ["autodl", "comfyui"],
       "role": "specialist",
       "review_level": "full-reviewed",
       "overlap_group": ["h3-execution-backend"]
@@ -57,6 +67,8 @@
       "brief": "Lists, starts, discovers and stops AutoDL application instances.",
       "use_when": "A cloud backend needs a current instance and panel endpoint.",
       "boundary": "Does not submit generation jobs or release instances.",
+      "input_types": ["autodl-instance-request"],
+      "target_tools": ["autodl"],
       "role": "complementary",
       "review_level": "full-reviewed",
       "overlap_group": []

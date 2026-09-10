@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "replacement": {
+    "skill": "replace-me",
+    "status": "tested"
+  },
+  "replacement_test": {
+    "artifact": "replace-with-test-artifact",
+    "result": "pass"
+  },
+  "unique_capabilities": {
+    "disposition": "migrated",
+    "evidence": "replace-me"
+  },
+  "ab_comparison": {
+    "artifact": "replace-with-comparison-artifact",
+    "result": "replacement-not-worse"
+  },
+  "recent_usage": {
+    "checked": true,
+    "evidence": "replace-me"
+  },
+  "project_dependencies": {
+    "checked": true,
+    "remaining": [],
+    "evidence": "replace-me"
+  },
+  "license_review": {
+    "status": "compatible",
+    "evidence": "replace-me"
+  }
+}

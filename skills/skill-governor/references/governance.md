@@ -6,8 +6,9 @@ Discovery, installation, routing, quality and retirement are separate decisions.
 - **Mapping** states capability, stage, role, boundary and overlap.
 - **Readiness** checks entry structure, linked files, source metadata and drift.
 - **Quality** requires version-bound evidence from actual tasks.
-- **Retirement** requires a tested replacement, unique-capability review,
-  recoverable backup and explicit authorization for the change.
+- **Retirement** requires a tested replacement, same-request A/B evidence,
+  unique-capability disposition, recent-use and project-dependency checks,
+  license review, recoverable backup and explicit authorization for the change.
 
 System and plugin-managed skills are protected from local mutation. Shared
 skills may be updated through a staged three-way merge. A duplicate score is a
@@ -22,3 +23,9 @@ archive operation, not a score threshold or an automatic delete.
 Use a source allowlist and inspect a downloaded skill before activation. Treat
 instructions, scripts and tool declarations from outside repositories as
 untrusted until reviewed.
+
+User-provided and manager-discovered candidates share the same adoption review.
+The first skips discovery, not governance. Use
+[capability-gap.md](capability-gap.md) for the three adoption modes and the
+single user-choice gate. Discovery output may never write to the active skill
+root.

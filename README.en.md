@@ -27,6 +27,7 @@ Jump to the part that matches your job:
 - Use [`h3-runtime-router`](#3-h3-runtime-selection-with-h3-runtime-router) when H3 materials are ready.
 - Follow the [local runner](#4-local-execution-with-comfyui-local-runner) for your own ComfyUI machine.
 - Follow the [cloud runner](#6-cloud-h3-execution-with-minimax-h3-cloud) for an AutoDL instance.
+- Read the [competitive analysis](docs/competitive-analysis.md) for positioning, tradeoffs, and adopted mechanisms.
 
 ![How one AI creation project moves through the workflow](docs/images/system-architecture.svg)
 
@@ -105,7 +106,10 @@ python scripts/verify_release.py
 python skills/skill-governor/scripts/skill_registry.py package-check
 python skills/skill-governor/scripts/test_skill_governor.py
 python skills/skill-governor/scripts/test_skill_lifecycle.py
+python skills/skill-governor/scripts/test_capability_gap.py
 python skills/ai-creation-workflow/scripts/test_domain_pack.py
+python skills/ai-creation-workflow/scripts/test_workflow_state.py
+python scripts/test_installation.py
 python scripts/test_runtime_guards.py
 python skills/comfyui-local-runner/scripts/run_local.py examples/minimal-project/local-h3-job.json --dry-run
 python skills/minimax-h3-cloud/scripts/run_batch.py examples/minimal-project/cloud-h3-batch.json --dry-run
@@ -139,9 +143,13 @@ The orchestrator selects the smallest control mode:
 Full mode starts with:
 
 ```text
-templates/00-project-control.md
-templates/workflow-state.json
+skills/ai-creation-workflow/assets/templates/00-project-control.md
+skills/ai-creation-workflow/assets/templates/workflow-state.json
 ```
+
+These templates are embedded in the Skill, so an independent installation does
+not depend on repository siblings. The top-level `templates/` directory is a
+synchronized browsing copy and CI rejects drift.
 
 The project contract records the objective, exact deliverables, authoritative
 inputs, constraints, locked decisions, acceptance evidence, excluded scope, and
@@ -155,8 +163,14 @@ handoffs, dry runs, validation and recovery of the same job proceed without an
 extra gate. See [`intake-and-gates.md`](skills/ai-creation-workflow/references/intake-and-gates.md).
 
 Stage states are `pending`, `ready`, `running`, `blocked`, `review`, `accepted`,
-and `failed`. If an upstream locked decision changes, mark affected downstream
-stages stale before rerunning them.
+`failed`, and `stale`. If an upstream input changes, invalidate only the stages
+that consumed it and their real dependency descendants:
+
+```bash
+python skills/ai-creation-workflow/scripts/workflow_state.py validate workflow-state.json
+python skills/ai-creation-workflow/scripts/workflow_state.py invalidate workflow-state.json \
+  --stage S01 --input-key brief --new-fingerprint v2
+```
 
 The default AI-video graph is:
 
@@ -168,6 +182,11 @@ brief → script → content units → story shots → generation segments
 
 A generation segment must define its own opening state, transition, and ending
 state. It must not rely on a video model remembering a previous request.
+
+Use the single-shot fast path for one approved, self-contained segment without
+cross-shot continuity. Use the project path for multi-shot continuity,
+handoffs, or resumable work. Before an expensive failure-propagating batch, run
+one representative high-risk calibration sample and expand only after approval.
 
 ## 2. Skill governance with `skill-governor`
 
@@ -195,6 +214,41 @@ lane, production stage, capability summary, positive trigger, boundary, role,
 review level, and declared overlap groups. The included roadmap covers the six
 skills in this repository; merge it with your own routing data before scanning
 a larger existing library.
+
+### Capability fit, gap search, and candidate adoption
+
+Create a request from the bundled template and produce resumable artifacts:
+
+```bash
+python skills/skill-governor/scripts/capability_gap.py assess \
+  --request capability-request.json --output routing-decision.json
+python skills/skill-governor/scripts/capability_gap.py resolve \
+  --request capability-request.json --decision routing-decision.json \
+  --output gap-resolution.json
+```
+
+The escalation order is an unchanged accepted route, functional roadmap, local
+installed metadata, then GitHub metadata only for a real gap. A local fit skips
+the network. A user-supplied name, path, archive, or URL skips discovery but not
+duplicate, gain, license, safety, dependency, permission, and compatibility
+review. Online search returns at most five untrusted metadata rows, deeply reads
+only the final one to three, and never downloads or installs them.
+
+After reviewing a candidate, create the adoption decision:
+
+```bash
+python skills/skill-governor/scripts/capability_gap.py adopt \
+  --review candidate-review.json --output candidate-adoption.json
+```
+
+The recommendation is `full_install` for a distinct measurable capability,
+`reference_strengthen` for useful licensed material that overlaps an installed
+Skill, or `reject` for no meaningful gain or unacceptable risk. Reference
+strengthening does not create a duplicate directory. An explicit user mode is
+honored without another question; otherwise the governor asks once whether to
+install fully or strengthen the existing capability. Safety and license
+blockers cannot be overridden by that mode choice. See
+[`capability-gap.md`](skills/skill-governor/references/capability-gap.md).
 
 After fully reviewing a skill, bind the route to its current behavior fingerprint:
 
@@ -270,6 +324,12 @@ Use `prepare-retire` to create a reviewed plan without moving files. Run
 `retire --approved retire` to archive the unchanged verified tree, and
 `restore-retired --approved restore` to reactivate it. System and plugin-cache
 skills are protected.
+
+`prepare-retire` requires `--evidence-file` using
+`assets/templates/retirement-evidence.json`. Replacement testing, unique
+capability disposition, same-task A/B, recent use, project dependencies, and
+license review are mandatory; changing the evidence file or Skill fingerprint
+after preparation blocks retirement.
 
 ### Update safely
 
@@ -508,11 +568,12 @@ inspection before any new paid submission.
 ```text
 skills/                      Six independently installable skills
   ai-creation-workflow/      Controller plus domain-pack manifests and validator
-templates/                   Project state and generation-contract templates
+templates/                   Browsing copies synchronized with embedded Skill assets
 examples/minimal-project/    Offline dry-run examples without private media
 scripts/install.py           Installer with backups
 scripts/verify_release.py    Release and secret hygiene checks
 docs/images/                 Bilingual explanatory diagrams
+docs/competitive-analysis.md Product comparison and adopted mechanisms
 .github/workflows/ci.yml     Windows and Linux offline validation
 ```
 

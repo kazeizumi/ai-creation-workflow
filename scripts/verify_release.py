@@ -12,7 +12,16 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IGNORED = {".git", "__pycache__", ".pytest_cache", "work", "results", "backups"}
+IGNORED = {
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "work",
+    "results",
+    "backups",
+}
 JWT = re.compile(r"\beyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}\b")
 PRIVATE_PATH = re.compile(
     r"(?i)(?:[A-Z]:[\\/](?:Users|Documents and Settings)[\\/][^\\/\s]+[\\/]|/(?:home|Users)/[^/\s]+/)"

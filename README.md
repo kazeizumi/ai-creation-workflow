@@ -16,6 +16,7 @@
 - 已经准备好 H3 材料，看[`h3-runtime-router`](#3-h3-runtime-routerh3-本地云端决策)。
 - 在自己电脑上生成，看[本地 ComfyUI 执行](#4-comfyui-local-runner本地-comfyui-执行)。
 - 租 AutoDL 实例生成，看[云端 H3 执行](#6-minimax-h3-cloud云端-h3-工作流执行)。
+- 想了解项目定位、同类优劣与竞争力，看[同类产品对比](docs/competitive-analysis.md)。
 
 ## 它怎么串起来
 
@@ -107,15 +108,23 @@ python -m pip install -r skills/minimax-h3-cloud/requirements.txt
 Full 模式建议从以下模板开始：
 
 ```text
-templates/00-project-control.md
-templates/workflow-state.json
+skills/ai-creation-workflow/assets/templates/00-project-control.md
+skills/ai-creation-workflow/assets/templates/workflow-state.json
 ```
+
+这两份模板内置在 Skill 目录中，因此只安装 `ai-creation-workflow` 也能使用；仓库顶层 `templates/` 是方便浏览的同步副本，CI 会阻止两份内容漂移。
 
 总控会依次完成：复用已有材料、定义交付和验收、建立阶段依赖、请技能管家分配专业 Skill、执行阶段、进入质量或费用门、验证实际产物、记录交付和使用证据。
 
 需求入口会先确认目标、用途、交付物、当前阶段、权威输入、约束、验收证据、可执行范围和明确不做的事项。只有缺失信息会改变方向、范围、费用、权限或验收时才提问，并尽量一次问齐。展示计划本身不等于等待审批；读取、草稿、Skill 交接、dry-run、验证和同一任务恢复会继续执行。规则见 [`intake-and-gates.md`](skills/ai-creation-workflow/references/intake-and-gates.md)。
 
-阶段状态包括 `pending`、`ready`、`running`、`blocked`、`review`、`accepted` 和 `failed`。上游锁定内容变化后，下游阶段应先标记为失效，再重新执行。
+阶段状态包括 `pending`、`ready`、`running`、`blocked`、`review`、`accepted`、`failed` 和 `stale`。上游输入变化后，只把实际读取该输入的阶段及其依赖后代标记为 `stale`，独立成果继续有效：
+
+```powershell
+python skills/ai-creation-workflow/scripts/workflow_state.py validate workflow-state.json
+python skills/ai-creation-workflow/scripts/workflow_state.py invalidate workflow-state.json `
+  --stage S01 --input-key brief --new-fingerprint v2
+```
 
 ### AI 视频默认阶段
 
@@ -143,6 +152,8 @@ python skills/ai-creation-workflow/scripts/domain_pack.py show --pack ai-video
 ```
 
 每个生成段都应自包含开场状态、动作或变化过程、结束状态。不要假设视频模型能记住上一段请求。
+
+单个、输入已批准且不依赖跨镜头连续性的生成段走“单镜头快速路径”，不建立整套分镜台账。多镜头、连续性或长期续作走完整项目路径；批量中存在高风险镜头时先做一条代表性校准片，通过后再扩展。
 
 ## 2. `skill-governor`：技能管家
 
@@ -173,6 +184,35 @@ python skills/skill-governor/scripts/skill_registry.py validate
 - Codex 配置中已启用插件暴露的 Skill。
 
 第一次接入已有大型技能库时，先备份 `registry`，再为已安装能力补充 `skill-roadmap.json`。本仓库自带的 roadmap 只登记本项目的六个核心 Skill，不能替代你现有技能库的完整路由表。
+
+### 胜任判断、缺口搜索和候选采纳
+
+Full 项目可以从内置模板建立能力请求，然后生成可恢复的决策产物：
+
+```powershell
+python skills/skill-governor/scripts/capability_gap.py assess `
+  --request capability-request.json --output routing-decision.json
+python skills/skill-governor/scripts/capability_gap.py resolve `
+  --request capability-request.json --decision routing-decision.json `
+  --output gap-resolution.json
+```
+
+顺序固定为：复用未失效路由 → 功能路标 → 本地已安装元数据 → 确有缺口才查 GitHub 元数据。已有 `fit` 不访问网络；用户交代的名称、路径、压缩包或 URL 跳过发现搜索，但仍查重并审查增益、许可证、安全、依赖、权限和兼容性。在线结果最多保留 5 个元数据候选，只深读最终 1–3 个，不会自动下载或安装。
+
+候选审查完成后生成 `candidate-adoption.json`：
+
+```powershell
+python skills/skill-governor/scripts/capability_gap.py adopt `
+  --review candidate-review.json --output candidate-adoption.json
+```
+
+它只给三种推荐：
+
+- `full_install`：边界独立且带来可测的新能力；先进 staging，通过后以 `probation` 试用。
+- `reference_strengthen`：与现有 Skill 高度重叠；只吸收许可证允许且能改变决策的部分，不创建重复目录。
+- `reject`：没有实际增益，或来源、安全、许可、依赖/权限成本不合格。
+
+用户已经说清方式时不再问；未说清时只问一次“完整安装，还是参考后补强现有功能？”，并附推荐。选择采纳方式不能绕过安全或许可证阻塞。完整机制见 [`capability-gap.md`](skills/skill-governor/references/capability-gap.md)。
 
 ### 登记一个 Skill
 
@@ -240,12 +280,13 @@ python skills/skill-governor/scripts/skill_audit.py audit `
 只有在替代者已通过测试、独特能力已经迁移、同题 A/B 不劣、近期使用和历史依赖已核对、许可证允许整合，并且有日期化可恢复备份时，技能管家才会提出退役建议。移动、停用、合并或删除仍需用户明确批准；默认移入归档，并写入 `registry/skill-retirements.json`，不做永久删除。
 
 ```powershell
+Copy-Item skills/skill-governor/assets/templates/retirement-evidence.json retirement-evidence.json
 python skills/skill-governor/scripts/skill_transaction.py prepare-retire --help
 python skills/skill-governor/scripts/skill_transaction.py retire --help
 python skills/skill-governor/scripts/skill_transaction.py restore-retired --help
 ```
 
-`prepare-retire` 只生成包含当前指纹、替代者、证据和归档位置的计划，不移动文件。审阅后用 `--approved retire` 执行归档；恢复时用 `--approved restore`。系统 Skill 与插件缓存中的 Skill 受保护。
+`prepare-retire` 必须通过 `--evidence-file retirement-evidence.json` 提供结构化的替代测试、独特能力处置、同题 A/B、近期使用、项目依赖和许可证证据，只生成计划，不移动文件。准备后证据文件或 Skill 指纹变化会阻止执行；审阅后用 `--approved retire` 归档，恢复时用 `--approved restore`。系统 Skill 与插件缓存中的 Skill 受保护。
 
 ### 安全更新和回滚
 
@@ -550,10 +591,11 @@ skills/
   comfyui-local-runner/   本地执行器
   minimax-h3-cloud/       云端批处理执行器
   autodl-app-instance/    AutoDL 实例管理
-templates/                项目状态与生成契约模板
+templates/                与核心 Skill 内置资产同步的浏览入口
 examples/minimal-project/ 可离线 dry-run 的最小示例
 scripts/install.py        带备份的安装器
 scripts/verify_release.py 发布前检查
+docs/competitive-analysis.md 同类产品对比与迭代结论
 .github/workflows/ci.yml Windows/Linux 离线验证
 ```
 
@@ -566,7 +608,10 @@ python scripts/verify_release.py
 python skills/skill-governor/scripts/skill_registry.py package-check
 python skills/skill-governor/scripts/test_skill_governor.py
 python skills/skill-governor/scripts/test_skill_lifecycle.py
+python skills/skill-governor/scripts/test_capability_gap.py
 python skills/ai-creation-workflow/scripts/test_domain_pack.py
+python skills/ai-creation-workflow/scripts/test_workflow_state.py
+python scripts/test_installation.py
 python scripts/test_runtime_guards.py
 python skills/comfyui-local-runner/scripts/run_local.py examples/minimal-project/local-h3-job.json --dry-run
 python skills/minimax-h3-cloud/scripts/run_batch.py examples/minimal-project/cloud-h3-batch.json --dry-run
