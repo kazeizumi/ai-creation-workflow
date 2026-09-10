@@ -1,52 +1,51 @@
-# AI 创作流程：Skill 管家与工作流总控
+# AI Creation Workflow
 
 [English](README.en.md)
 
-跨阶段 AI 项目常见的问题很实际：需求没有问清就开始做，材料和决策散在不同位置，Skill 越装越多却没人管理，执行中又不断停下来确认。方向一旦错了，后面的计划和产物都会跟着返工。
+这个仓库管两件容易失控的事：长流程 AI 项目，以及越装越多的 Skill。
 
-这个仓库把两件事放到一起：技能管家负责发现、分配、评分、学习、更新和可恢复退役；工作流总控负责摸清需求、列计划、推进步骤、管理依赖、控制必要门禁并验收交付。AI 视频是第一个完整领域包，H3 可以交给本机 ComfyUI，也可以调用 AutoDL 实例里已经装好的工作流。
+`ai-creation-workflow` 负责项目怎么往下走，`skill-governor` 负责每一步该用哪个 Skill、现有能力够不够。它们可以单独安装，也可以一起用。
 
-你可以从一句需求开始，让它组织完整项目；也可以只拿其中一部分来用，比如整理 Skill、跑一份本地 ComfyUI 清单，或者提交一批云端 H3 任务。编剧、导演、提示词、VFX 和声音仍由各自的专业 Skill 完成，这个仓库负责把步骤和结果接起来。
+仓库还带了一套 H3 视频执行工具，支持本机 ComfyUI 和 AutoDL 云端实例。这里提供的是流程、状态管理和执行适配器，不包含模型权重、第三方工作流或商业素材。
 
-按你的情况直接看对应部分：
+## 先看这里
 
-- 第一次使用，先看[快速安装](#快速安装)。
-- 想跑完整项目，看[`ai-creation-workflow`](#1-ai-creation-workflow创作项目总控)。
-- Skill 太多不好管理，看[`skill-governor`](#2-skill-governor技能管家)。
-- 已经准备好 H3 材料，看[`h3-runtime-router`](#3-h3-runtime-routerh3-本地云端决策)。
-- 在自己电脑上生成，看[本地 ComfyUI 执行](#4-comfyui-local-runner本地-comfyui-执行)。
-- 租 AutoDL 实例生成，看[云端 H3 执行](#6-minimax-h3-cloud云端-h3-工作流执行)。
-- 想了解项目定位、同类优劣与竞争力，看[同类产品对比](docs/competitive-analysis.md)。
+- 想直接安装：看[安装](#安装)。
+- 想做一个多阶段项目：看[项目总控](#项目总控)。
+- 想整理、补强 Skill：看[技能管家](#技能管家)。
+- 已经备好 H3 提示词和参考图：看[运行-h3](#运行-h3)。
+- 想知道它和其他方案有什么不同：看[同类产品对比](docs/competitive-analysis.md)。
 
-## 它怎么串起来
+## 里面有什么
 
-![AI 创作控制系统整体架构](docs/images/system-architecture.svg)
+| Skill | 用途 |
+|---|---|
+| `ai-creation-workflow` | 拆阶段、管依赖、保存状态、恢复任务、验收交付 |
+| `skill-governor` | 选择 Skill、判断能力缺口、查重、试用、更新和退役 |
+| `h3-runtime-router` | 决定 H3 走本地还是云端，并整理生成前契约 |
+| `comfyui-local-runner` | 按 JSON 清单调用本机 ComfyUI API |
+| `minimax-h3-cloud` | 批量提交云端 H3 工作流、轮询并下载结果 |
+| `autodl-app-instance` | 查询、启动和关闭 AutoDL 应用实例 |
 
-这里有两个主导角色，分工很明确：
+两个核心 Skill 的分工：
 
-| 主导角色 | 负责什么 | 不负责什么 |
-|---|---|---|
-| `skill-governor` 技能管家 | 管理 Skill 库，发现、登记、分配、查重、评估、升级、备份和回滚 | 不替项目写计划，不追踪项目进度，不冒充专业 Skill 产出内容 |
-| `ai-creation-workflow` 工作流总控 | 理解目标，列出执行计划和详细步骤，安排依赖，推进每一步，验收和交付 | 不直接修改 Skill 库，不替专业 Skill 发明工艺 |
+```text
+用户目标
+  ↓
+ai-creation-workflow 拆任务、排顺序
+  ↓
+skill-governor 为当前步骤找合适能力
+  ↓
+专业 Skill 或执行器完成工作
+  ↓
+总控验收结果并更新状态
+```
 
-总控在建立或修改阶段时，把“要产出什么、手里有什么、用什么工具、怎么验收”交给技能管家。技能管家返回最合适的主 Skill、必要的补充 Skill、边界和缺口，总控再把这项分配写入计划并负责落实。
+![整体结构](docs/images/system-architecture.svg)
 
-| 执行支持 | 核心功能 | 典型使用场景 |
-|---|---|---|
-| `h3-runtime-router` | H3 本地/云端选择、生成契约、成本和失败策略 | 提示词与素材已经完成，准备开始渲染 |
-| `comfyui-local-runner` | 用 JSON 清单执行本机 ComfyUI API 工作流 | 本地模型与工作流已经装好，希望稳定复现参数 |
-| `minimax-h3-cloud` | 检查云端已装工作流、批量提交、轮询、下载和关机 | 使用 AutoDL 中已有的 H3 工作流进行付费生成 |
-| `autodl-app-instance` | 查询、启动、发现面板、关闭 AutoDL 应用实例 | 云端生成前后的实例生命周期管理 |
+## 安装
 
-编剧、导演、分镜、提示词、特效和声音设计属于可插拔专业能力。总控按“功能域、工作阶段、输入输出和能力边界”调用它们，不在代码里绑定某一个私有 Skill 名称。
-
-AI 视频只是总控可以调用的一个领域包。剧本、分镜、提示词、VFX、TTS 和声音等专业 Skill 按阶段接入；H3 只是其中一条执行路线。
-
-双核心、可插拔领域包、前置需求摸清、低打扰门禁、可恢复 Skill 退役和运行可靠性已经按 [`docs/pending-execution-plan.md`](docs/pending-execution-plan.md) 落实。该文档同时保留设计依据和验收场景。
-
-## 快速安装
-
-建议使用 Python 3.11 或更高版本。
+需要 Python 3.11 或更高版本。
 
 ```powershell
 git clone https://github.com/kazeizumi/ai-creation-workflow.git
@@ -55,553 +54,262 @@ python scripts/install.py --dry-run
 python scripts/install.py --yes
 ```
 
-`--dry-run` 只展示安装计划。`--yes` 才会写入，默认安装位置是 `~/.agents/skills`。如果目标位置已有同名 Skill，安装器会先复制到 `.ai-creation-workflow-backups`，再安装新版本。
+`--dry-run` 只显示安装计划。正式安装默认写入 `~/.agents/skills`；已有同名 Skill 时，安装器会先备份到 `.ai-creation-workflow-backups`。
 
-只安装部分组件：
+只装两个核心 Skill：
 
 ```powershell
-python scripts/install.py --skill ai-creation-workflow --skill skill-governor --yes
+python scripts/install.py `
+  --skill ai-creation-workflow `
+  --skill skill-governor `
+  --yes
 ```
 
-安装到其他目录：
+指定安装目录：
 
 ```powershell
 python scripts/install.py --target "D:\MyAgent\skills" --yes
 ```
 
-云端运行还需要 `httpx`：
+云端 H3 执行还需要 `httpx`：
 
 ```powershell
 python -m pip install -r skills/minimax-h3-cloud/requirements.txt
 ```
 
-安装后如果当前 Agent 没有立即发现新 Skill，请刷新技能列表或重新开始一个会话。
+安装后如果 Agent 没有立即显示新 Skill，刷新技能列表或重新开始一个会话。
 
-## 1. `ai-creation-workflow`：创作项目总控
+## 项目总控
 
-### 什么时候使用
-
-当任务包含两个以上相互依赖的阶段，或者涉及付费生成、多次渲染、多人交接、长期续作时，用它负责项目计划和执行。例如：
-
-- 从故事梗概制作一支完整 AI 短片。
-- 把锁定剧本拆成内容单元、镜头和 H3 生成段。
-- 协调角色设定、参考图、提示词、配音、特效和最终交付。
-- 中断数天后恢复项目，并从第一个可执行阶段继续。
-
-### 怎么使用
-
-在支持 Skill 的 Agent 中直接说明目标：
+`ai-creation-workflow` 适合有前后依赖、可能中断恢复，或者涉及付费执行的任务。单个明确步骤不会强行建项目。
 
 ```text
-使用 $ai-creation-workflow，把这份锁定剧本制作成 16:9 AI 叙事短片。
-交付物需要包含镜头表、H3 中英文提示词、参考图上传顺序和最终视频。
+使用 $ai-creation-workflow，把这份锁定剧本做成 16:9 AI 叙事短片。
+需要镜头表、H3 中英文提示词、参考图上传顺序和最终视频。
 ```
 
-总控会根据规模选择三种控制模式：
+它按任务规模选择三种模式：
 
-| 模式 | 使用条件 | 状态管理 |
-|---|---|---|
-| Direct | 单个明确、可撤销步骤 | 直接调用已知专业 Skill |
-| Light | 2–4 个有依赖的阶段 | 在会话中维护简短契约与检查点 |
-| Full | 跨阶段、付费、批量或需要恢复 | 创建项目控制文件和 JSON 状态文件 |
+| 模式 | 什么时候用 |
+|---|---|
+| Direct | 单个明确步骤，直接交给专业 Skill |
+| Light | 少量有关联的步骤，在会话中保存简短检查点 |
+| Full | 跨阶段、批量、付费或需要长期恢复的项目 |
 
-Full 模式建议从以下模板开始：
+Full 模式使用 Skill 内置的控制文件：
 
 ```text
 skills/ai-creation-workflow/assets/templates/00-project-control.md
 skills/ai-creation-workflow/assets/templates/workflow-state.json
 ```
 
-这两份模板内置在 Skill 目录中，因此只安装 `ai-creation-workflow` 也能使用；仓库顶层 `templates/` 是方便浏览的同步副本，CI 会阻止两份内容漂移。
-
-总控会依次完成：复用已有材料、定义交付和验收、建立阶段依赖、请技能管家分配专业 Skill、执行阶段、进入质量或费用门、验证实际产物、记录交付和使用证据。
-
-需求入口会先确认目标、用途、交付物、当前阶段、权威输入、约束、验收证据、可执行范围和明确不做的事项。只有缺失信息会改变方向、范围、费用、权限或验收时才提问，并尽量一次问齐。展示计划本身不等于等待审批；读取、草稿、Skill 交接、dry-run、验证和同一任务恢复会继续执行。规则见 [`intake-and-gates.md`](skills/ai-creation-workflow/references/intake-and-gates.md)。
-
-阶段状态包括 `pending`、`ready`、`running`、`blocked`、`review`、`accepted`、`failed` 和 `stale`。上游输入变化后，只把实际读取该输入的阶段及其依赖后代标记为 `stale`，独立成果继续有效：
+上游材料变化时，总控只让真正依赖它的阶段失效，不会推倒整个项目。状态文件可以直接检查：
 
 ```powershell
-python skills/ai-creation-workflow/scripts/workflow_state.py validate workflow-state.json
-python skills/ai-creation-workflow/scripts/workflow_state.py invalidate workflow-state.json `
-  --stage S01 --input-key brief --new-fingerprint v2
+python skills/ai-creation-workflow/scripts/workflow_state.py `
+  validate workflow-state.json
 ```
 
-### AI 视频默认阶段
+细节在下面几份文档里：
 
-这些阶段来自 `ai-video` 领域包。领域包只提供阶段模板、专业能力域、门禁和运行适配器，总控仍管理整个项目，技能管家仍负责选择具体 Skill。可查看或验证已装领域包：
+- [需求和审批门](skills/ai-creation-workflow/references/intake-and-gates.md)
+- [项目控制](skills/ai-creation-workflow/references/project-control.md)
+- [Token 和子代理](skills/ai-creation-workflow/references/token-and-delegation.md)
+
+### AI 视频流程
+
+内置的 `ai-video` 领域包大致按下面的顺序工作：
+
+```text
+剧本 → 镜头 → 生成段 → 参考材料 → 提示词
+     → 本地或云端渲染 → 媒体验收 → 剪辑与声音
+```
+
+单个镜头可以走快速路径，不必创建整套台账。批量里有高风险镜头时，先生成一条代表样片，再决定是否继续铺开。
+
+查看领域包：
 
 ```powershell
 python skills/ai-creation-workflow/scripts/domain_pack.py list
-python skills/ai-creation-workflow/scripts/domain_pack.py validate
 python skills/ai-creation-workflow/scripts/domain_pack.py show --pack ai-video
 ```
 
-```text
-目标与材料
-→ 剧本
-→ 内容单元 C
-→ 故事镜头 SH
-→ 生成段 G
-→ 参考材料与上传顺序
-→ 中英文提示词
-→ 本地/云端运行选择
-→ 渲染
-→ 媒体验收
-→ 剪辑与声音
-→ 交付
+## 技能管家
+
+`skill-governor` 解决的不是“再装一个 Skill”，而是先判断有没有必要装。
+
+每次分配前，它把现有能力分成三种情况：
+
+- `fit`：现有 Skill 能独立完成，直接使用。
+- `partial`：能做一部分，继续找缺的那一块。
+- `gap`：本地没有合适能力，再考虑网上的候选。
+
+默认顺序是：复用已有结论，检查本地 Skill，确认缺口后才搜索 GitHub 仓库元数据。搜索最多保留 5 个候选，只深读最后 1–3 个；`resolve` 本身不会下载或安装任何内容。
+
+如果用户直接给了 Skill 名称、路径、压缩包或网址，就跳过搜索，但查重、安全、许可证和兼容性检查仍然保留。
+
+候选审查后会给出一种建议：
+
+| 建议 | 条件 |
+|---|---|
+| `full_install` | 能力边界独立，确实增加了可测试的新功能 |
+| `reference_strengthen` | 和现有 Skill 重叠较多，只吸收有用且许可允许的部分 |
+| `reject` | 没有实际增益，或安全、许可证、依赖成本不合格 |
+
+用户已经说明选择时，不会再问一遍。没有说明时，只问一次：“完整安装，还是参考后补强现有功能？”
+
+能力判断和候选建议：
+
+```powershell
+python skills/skill-governor/scripts/capability_gap.py assess `
+  --request capability-request.json `
+  --output routing-decision.json
+
+python skills/skill-governor/scripts/capability_gap.py resolve `
+  --request capability-request.json `
+  --decision routing-decision.json `
+  --output gap-resolution.json
+
+python skills/skill-governor/scripts/capability_gap.py adopt `
+  --review candidate-review.json `
+  --output candidate-adoption.json
 ```
 
-每个生成段都应自包含开场状态、动作或变化过程、结束状态。不要假设视频模型能记住上一段请求。
+已有决策和输入指纹没变时，结果会直接复用，避免重复搜索和重复审读。详细规则在 [capability-gap.md](skills/skill-governor/references/capability-gap.md)。
 
-单个、输入已批准且不依赖跨镜头连续性的生成段走“单镜头快速路径”，不建立整套分镜台账。多镜头、连续性或长期续作走完整项目路径；批量中存在高风险镜头时先做一条代表性校准片，通过后再扩展。
-
-## 2. `skill-governor`：技能管家
-
-![Skill 治理循环](docs/images/skill-governance-cycle.svg)
-
-### 什么时候使用
-
-- 安装新 Skill 后，希望把它放进合适的功能域和工作阶段。
-- 多个 Skill 都能“写提示词”或“做分镜”，需要判断主次和边界。
-- Skill 更新后，想知道行为文件是否变化、旧映射是否失效。
-- 希望记录某个 Skill 在真实任务中的成功、部分成功或失败证据。
-- 准备合并、停用或替换 Skill，需要备份和回滚能力。
-
-### 扫描、分配和查看路由
+### 扫描现有 Skill
 
 ```powershell
 python skills/skill-governor/scripts/skill_registry.py scan
 python skills/skill-governor/scripts/skill_registry.py report --include-unready
-python skills/skill-governor/scripts/skill_registry.py report --lane video-runtime
 python skills/skill-governor/scripts/skill_registry.py duplicates
 python skills/skill-governor/scripts/skill_registry.py validate
 ```
 
-默认扫描：
+默认读取共享 Skill、系统 Skill，以及当前启用插件暴露的 Skill。仓库自带的 roadmap 只登记本项目组件，不会替你补完整个技能库的路由表。
 
-- `~/.agents/skills` 中的共享 Skill；
-- `~/.codex/skills/.system` 中的系统 Skill；
-- Codex 配置中已启用插件暴露的 Skill。
+### 更新和退役
 
-第一次接入已有大型技能库时，先备份 `registry`，再为已安装能力补充 `skill-roadmap.json`。本仓库自带的 roadmap 只登记本项目的六个核心 Skill，不能替代你现有技能库的完整路由表。
+新 Skill 先进入 `probation`。它需要在真实任务中和现有方案做同题比较，有证据后才进入主路由。
 
-### 胜任判断、缺口搜索和候选采纳
-
-Full 项目可以从内置模板建立能力请求，然后生成可恢复的决策产物：
-
-```powershell
-python skills/skill-governor/scripts/capability_gap.py assess `
-  --request capability-request.json --output routing-decision.json
-python skills/skill-governor/scripts/capability_gap.py resolve `
-  --request capability-request.json --decision routing-decision.json `
-  --output gap-resolution.json
-```
-
-顺序固定为：复用未失效路由 → 功能路标 → 本地已安装元数据 → 确有缺口才查 GitHub 元数据。已有 `fit` 不访问网络；用户交代的名称、路径、压缩包或 URL 跳过发现搜索，但仍查重并审查增益、许可证、安全、依赖、权限和兼容性。在线结果最多保留 5 个元数据候选，只深读最终 1–3 个，不会自动下载或安装。
-
-候选审查完成后生成 `candidate-adoption.json`：
-
-```powershell
-python skills/skill-governor/scripts/capability_gap.py adopt `
-  --review candidate-review.json --output candidate-adoption.json
-```
-
-它只给三种推荐：
-
-- `full_install`：边界独立且带来可测的新能力；先进 staging，通过后以 `probation` 试用。
-- `reference_strengthen`：与现有 Skill 高度重叠；只吸收许可证允许且能改变决策的部分，不创建重复目录。
-- `reject`：没有实际增益，或来源、安全、许可、依赖/权限成本不合格。
-
-用户已经说清方式时不再问；未说清时只问一次“完整安装，还是参考后补强现有功能？”，并附推荐。选择采纳方式不能绕过安全或许可证阻塞。完整机制见 [`capability-gap.md`](skills/skill-governor/references/capability-gap.md)。
-
-### 登记一个 Skill
-
-在 `skills/skill-governor/registry/skill-roadmap.json` 中填写：
-
-- `lane`：功能域；
-- `stage`：工作流阶段；
-- `brief`：能力摘要；
-- `use_when`：正向触发条件；
-- `boundary`：不负责什么；
-- `role`：主 Skill、专项、备选、补充或独立能力；
-- `review_level`：只看描述或已完整审读；
-- `overlap_group`：需要同题比较的能力组。
-
-完整审读后，将映射绑定到当前行为指纹：
-
-```powershell
-python skills/skill-governor/scripts/skill_registry.py ack-map --skill h3-runtime-router --review-level full-reviewed
-```
-
-### 学习、评分和生命周期
-
-新装 Skill 默认是 `probation`（试用）。技能管家会把它放进限定场景，用同一个真实请求和现有主 Skill 做 A/B，再根据证据决定是否进入主路由。评分和使用次数分开：使用多不等于质量高，项目整体失败也不能直接把所有参与 Skill 一起扣分。
-
-质量证据至少要能归因到当前 Skill，并绑定任务 ID 和行为指纹。七个维度各按 1–5 分：适配 `fit`、产物 `output`、稳定 `reliability`、效率 `efficiency`、维护 `maintainability`、独特性 `uniqueness`、安全 `safety`。只有用户明确反馈、独立回归或可测量变化时才记录评分：
-
-```powershell
-python skills/skill-governor/scripts/skill_registry.py record-outcome `
-  --skill h3-runtime-router `
-  --task-id project-001-G01 `
-  --fit 5 --output 5 --reliability 4 --efficiency 4 `
-  --maintainability 5 --uniqueness 4 --safety 5 `
-  --verdict pass `
-  --source user `
-  --evidence "完成本地/云端决策，生成契约可直接交给执行器" `
-  --artifact artifacts/project-001/runtime-contract.md
-```
-
-审计会把 Skill 分到 `keep-core`（核心）、`keep-core-probation`（核心待补证据）、`keep-specialist`（专项）、`trial-review`（试用）、`observe`（观察）、`compare`（对比）、`repair`（修复）、`compatibility-review`（兼容性审查）、`quarantine-review`（隔离审查）或 `protected`（受保护）。更新版本会保留旧证据，但新版本重新试用。
-
-记录真实使用和生成审计报告：
-
-记录一次实际调用：
-
-```powershell
-python skills/skill-governor/scripts/skill_audit.py record-use `
-  --skill h3-runtime-router `
-  --task-id project-001-G01 `
-  --result completed `
-  --reason "正确完成本地与云端选择并形成生成契约"
-```
-
-生成技能组合审计报告：
-
-```powershell
-python skills/skill-governor/scripts/skill_audit.py audit `
-  --output-json skill-audit.json `
-  --output-md skill-audit.md
-```
-
-使用频率和质量评价分开保存。出现重复候选只会触发同题 A/B 审查，不会自动删除 Skill。完整规则见 [`skills/skill-governor/references/evolution.md`](skills/skill-governor/references/evolution.md)。
-
-### 退役和淘汰门禁
-
-只有在替代者已通过测试、独特能力已经迁移、同题 A/B 不劣、近期使用和历史依赖已核对、许可证允许整合，并且有日期化可恢复备份时，技能管家才会提出退役建议。移动、停用、合并或删除仍需用户明确批准；默认移入归档，并写入 `registry/skill-retirements.json`，不做永久删除。
-
-```powershell
-Copy-Item skills/skill-governor/assets/templates/retirement-evidence.json retirement-evidence.json
-python skills/skill-governor/scripts/skill_transaction.py prepare-retire --help
-python skills/skill-governor/scripts/skill_transaction.py retire --help
-python skills/skill-governor/scripts/skill_transaction.py restore-retired --help
-```
-
-`prepare-retire` 必须通过 `--evidence-file retirement-evidence.json` 提供结构化的替代测试、独特能力处置、同题 A/B、近期使用、项目依赖和许可证证据，只生成计划，不移动文件。准备后证据文件或 Skill 指纹变化会阻止执行；审阅后用 `--approved retire` 归档，恢复时用 `--approved restore`。系统 Skill 与插件缓存中的 Skill 受保护。
-
-### 安全更新和回滚
-
-先做三方比较：基线版本、当前本地版本、待安装上游版本。无冲突后生成 staging，再备份并激活。工具入口：
+退役也不会直接删除。替代方案通过测试、独特能力已经处理、项目依赖和许可证都核对过后，工具才能生成退役计划。真正移动文件仍需要明确批准，并保留恢复记录。
 
 ```powershell
 python skills/skill-governor/scripts/skill_transaction.py prepare --help
 python skills/skill-governor/scripts/skill_transaction.py backup --help
 python skills/skill-governor/scripts/skill_transaction.py activate --help
 python skills/skill-governor/scripts/skill_transaction.py rollback --help
+python skills/skill-governor/scripts/skill_transaction.py prepare-retire --help
+python skills/skill-governor/scripts/skill_transaction.py restore-retired --help
 ```
 
-系统 Skill 和插件管理的 Skill 默认视为受保护对象。共享 Skill 才进入本地三方合并流程。
+评分、来源和退役证据的完整说明见 [evolution.md](skills/skill-governor/references/evolution.md)。
 
-## 3. `h3-runtime-router`：H3 本地/云端决策
+![Skill 治理流程](docs/images/skill-governance-cycle.svg)
 
-![H3 本地和云端执行与恢复流程](docs/images/h3-runtime-flow.svg)
+## 运行 H3
 
-### 什么时候使用
+提示词和参考材料准备好后，先用 `h3-runtime-router` 确认走本地还是云端。用户已经指定时不会重复提问。
 
-当提示词、参考图和视频段参数已经准备好，需要真正调用 H3 时使用。如果用户只说“生成 H3 视频”而没有指定运行位置，它先问一个问题：**云端还是本地？** 已经指定后不重复询问。
+真正提交前，要明确工作流、输入、上传顺序、生成范围、输出位置和失败后的处理方式。云端任务还要确认实例、费用估算和关机策略。
 
-### 生成前必须形成的契约
+### 本地 ComfyUI
 
-使用 [`templates/h3-generation-contract.md`](templates/h3-generation-contract.md) 明确：
+本地执行器要求 ComfyUI 已经运行，并且工作流已经导出成 API Format JSON。最小清单见 [local-h3-job.json](examples/minimal-project/local-h3-job.json)。
 
-- 本地或云端；
-- 准确的工作流文件、名称或 ID；
-- 提示词、参考文件和真实上传顺序；
-- 任务数量、每段时长、分辨率和关键采样参数；
-- 输出目录；
-- 预计成本；
-- 超时、重试和失败回退；
-- 云端任务结束后是否关机；
-- 本次生成授权。
-
-提示词、参考计划或故事板通过审核，只能证明材料准备完成，不代表已经授权提交 ComfyUI。每一次新生成都需要对应的执行范围；同一任务的断线恢复和轮询重试可沿用原任务 ID。
-
-### 成本计算
-
-```text
-单条直接计算成本 = 实例每小时价格 × 实际占用分钟数 ÷ 60
-```
-
-仓库保留了一个可编辑的 10 秒 H3 二采样例：
-
-| 实例 | 每小时价格 | 实测时间 | 单条成本 |
-|---|---:|---:|---:|
-| RTX 5090 | ¥3.00 | 8–9 分钟 | ¥0.40–0.45 |
-| RTX 4080 | ¥1.80 | 12–15 分钟 | ¥0.36–0.45 |
-
-实际比较应使用“每条成功视频”的总时间，把开机、上传、排队、失败重试和关机时间一起计入。
-
-## 4. `comfyui-local-runner`：本地 ComfyUI 执行
-
-### 适用条件
-
-- 本机 ComfyUI 已经运行；
-- 模型、自定义节点和工作流依赖已经安装；
-- 工作流已从 ComfyUI 导出为 **API Format JSON**；
-- 精确节点输入、输出目录和失败回退已经确认。
-
-它不会启动 ComfyUI、安装节点、转换普通 UI 工作流，也不会自动编写提示词。
-
-### 准备本地清单
-
-参考 [`examples/minimal-project/local-h3-job.json`](examples/minimal-project/local-h3-job.json)：
-
-```json
-{
-  "schema_version": 1,
-  "base_url": "http://127.0.0.1:8188",
-  "workflow": "workflow_api.json",
-  "output_dir": "results",
-  "poll_seconds": 5,
-  "timeout_seconds": 7200,
-  "input_values": {
-    "28:prompt": {"$text_file": "Prompt_EN.txt"},
-    "27:value": 10,
-    "29:megapixels": 0.6,
-    "54:value": 1.5,
-    "66:image": {"$upload": "Picture_01.png"}
-  }
-}
-```
-
-`input_values` 的键必须是工作流中真实存在的 `节点ID:输入名`。`$text_file` 读取 UTF-8 文本，`$upload` 在提交前上传文件，普通 JSON 值直接覆盖节点输入。
-
-先验证，不连接 ComfyUI：
+先离线检查：
 
 ```powershell
-python skills/comfyui-local-runner/scripts/run_local.py path/to/local-job.json --dry-run
+python skills/comfyui-local-runner/scripts/run_local.py `
+  examples/minimal-project/local-h3-job.json `
+  --dry-run
 ```
 
-确认生成契约后正式运行：
+确认后去掉 `--dry-run` 才会提交。运行状态写在 `run-state.json`；超时后应先按已有 `prompt_id` 查结果，不要直接重发。
 
-```powershell
-python skills/comfyui-local-runner/scripts/run_local.py path/to/local-job.json
-```
+### AutoDL 云端
 
-运行器会上传文件、修改节点输入、提交一次请求、按 `prompt_id` 轮询、下载所有输出，并写入 `run-state.json`。默认只允许 `127.0.0.1`、`localhost` 和 `::1`；明确连接远程 ComfyUI 时才使用 `--allow-remote`。
+Token 从当前进程的 `AUTODL_TOKEN` 读取，也可以放在本机的 `~/.config/autodl.env`。不要把它写进仓库、任务清单或命令参数。
 
-如果客户端超时，先读取 `run-state.json` 中的 `prompt_id` 并查询 ComfyUI 历史。不要直接再次提交，以免产生重复长任务。
-
-## 5. `autodl-app-instance`：AutoDL 实例管理
-
-### 配置 Token
-
-脚本优先读取当前进程的 `AUTODL_TOKEN`，否则读取：
-
-```text
-Windows: %USERPROFILE%\.config\autodl.env
-macOS/Linux: ~/.config/autodl.env
-```
-
-文件内容只有一行：
-
-```text
-AUTODL_TOKEN=在本地填写真实开发者Token
-```
-
-也可以用 `AUTODL_ENV_FILE` 指向其他本地文件。不要把 Token 放进 Git、JSON 清单或命令行参数。
-
-Windows 环境检查：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File skills/autodl-app-instance/scripts/doctor.ps1
-```
-
-增加 `-Probe` 会调用只读实例列表接口：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File skills/autodl-app-instance/scripts/doctor.ps1 -Probe
-```
-
-### 生命周期命令
+常用实例命令：
 
 ```powershell
 python skills/autodl-app-instance/scripts/autodl_instance.py list
 python skills/autodl-app-instance/scripts/autodl_instance.py status --uuid pro-xxxxxxxxxxxx
-python skills/autodl-app-instance/scripts/autodl_instance.py snapshot --uuid pro-xxxxxxxxxxxx
 python skills/autodl-app-instance/scripts/autodl_instance.py boot --uuid pro-xxxxxxxxxxxx
 python skills/autodl-app-instance/scripts/autodl_instance.py off --uuid pro-xxxxxxxxxxxx --wait
 ```
 
-`boot` 会等待实例运行，并从本次快照重新发现当前 ComfyUI 面板地址。重启后不要复用旧面板 URL。脚本不会释放或删除实例。
-
-## 6. `minimax-h3-cloud`：云端 H3 工作流执行
-
-### 第一次检查实例里已有的工作流
-
-先启动获准的实例：
-
-```powershell
-python skills/autodl-app-instance/scripts/autodl_instance.py boot --uuid pro-xxxxxxxxxxxx
-```
-
-把 `boot` 返回的当前 `panel_url` 保存为本次会话环境变量：
+实例启动后，先读取这次返回的面板地址，再检查实际存在的工作流。不要沿用上次开机的旧 URL 或节点映射。
 
 ```powershell
 $env:SEETACLOUD_BASE_URL = "https://本次返回的面板地址"
-```
 
-列出真实存在的工作流：
-
-```powershell
 python skills/minimax-h3-cloud/scripts/workflow_tool.py list `
   --base-url $env:SEETACLOUD_BASE_URL
-```
 
-按准确 `workflow_id` 检查输入槽，并保存映射：
-
-```powershell
 python skills/minimax-h3-cloud/scripts/workflow_tool.py inspect `
   --base-url $env:SEETACLOUD_BASE_URL `
   --workflow-id "准确的工作流ID" `
   --out workflow-map.json
 ```
 
-如果这次只是检查工作流，检查完成后关机：
+批量清单示例在 [cloud-h3-batch.json](examples/minimal-project/cloud-h3-batch.json)。同样先 dry-run：
 
 ```powershell
-python skills/autodl-app-instance/scripts/autodl_instance.py off --uuid pro-xxxxxxxxxxxx --wait
+python skills/minimax-h3-cloud/scripts/run_batch.py `
+  examples/minimal-project/cloud-h3-batch.json `
+  --dry-run
 ```
 
-### 创建批量清单
+正式运行会逐条保存 `prompt_id`，下载时先写 `.part` 文件，并按清单设置决定任务后是否关机。已有状态文件时默认拒绝重复提交；使用 `--resume` 只恢复已经记录的远端任务。
 
-参考 [`examples/minimal-project/cloud-h3-batch.json`](examples/minimal-project/cloud-h3-batch.json)：
+## 几个用法
 
-```json
-{
-  "instance_uuid": "pro-xxxxxxxxxxxx",
-  "keep_on": false,
-  "poll_timeout_seconds": 3600,
-  "max_parallel_polls": 3,
-  "state_file": "batch-state.json",
-  "jobs": [
-    {
-      "name": "G01",
-      "workflow_id": "准确的已安装工作流ID",
-      "output": "results/G01.mp4",
-      "input_values": {
-        "664:prompt": "完整且自包含的H3提示词",
-        "132:value": 10,
-        "29:megapixels": 0.6,
-        "54:value": 1.5,
-        "137:image": {"$upload": "refs/Picture_01.png"}
-      }
-    }
-  ]
-}
-```
-
-输入键必须来自当前工作流的 `inspect` 结果。切换实例或工作流后重新检查，不要复用旧节点映射。
-
-先做离线检查：
-
-```powershell
-python skills/minimax-h3-cloud/scripts/run_batch.py path/to/batch.json --dry-run
-```
-
-生成范围获得确认后正式执行：
-
-```powershell
-python skills/minimax-h3-cloud/scripts/run_batch.py path/to/batch.json
-```
-
-批处理运行器会：
-
-1. 查询并启动准确实例；
-2. 发现本次有效面板地址；
-3. 上传所有 `$upload` 文件；
-4. 在轮询前先提交整批任务；
-5. 只按各自 `prompt_id` 关联结果；
-6. 使用 `.part` 文件流式下载；
-7. 在可用时调用 `ffprobe` 验证媒体；
-8. 无论成功或失败都进入 `finally` 关机。
-
-如果实例本来已经运行，工具默认拒绝接管，因为其中可能有无关任务。先检查队列，确认该批任务可以拥有实例关机权后，再使用：
-
-```powershell
-python skills/minimax-h3-cloud/scripts/run_batch.py path/to/batch.json --adopt-running-instance
-```
-
-只有用户明确要求生成后保持开机，清单中才设置 `keep_on: true`，同时命令增加 `--allow-keep-on`。
-
-## 三种常见使用方式
-
-### A. 从创意到最终视频
+完整项目：
 
 ```text
 使用 $ai-creation-workflow 完成这个 AI 短片项目。
-先复用项目内剧本和角色资料，完成镜头、参考材料和 H3 提示词。
-真正生成前让我选择云端或本地，并给出费用与失败回退。
+先复用现有剧本和角色资料。真正生成前让我选择云端或本地，
+并说明预计费用、输出位置和失败回退。
 ```
 
-总控负责阶段和状态；专业 Skill 负责内容；运行路由负责本地/云端；执行器负责提交与下载。
-
-### B. 材料已经准备好，只执行 H3
+只运行一段 H3：
 
 ```text
 使用 $h3-runtime-router 执行这段 10 秒 H3 视频。
-工作流、提示词和参考图都在 project/G01，输出到 project/results。
+工作流、提示词和参考图在 project/G01，结果放到 project/results。
 ```
 
-如果没有说运行位置，系统只追问云端还是本地；随后完成生成契约并交给对应执行器。
-
-### C. 整理越来越多的 Skill
+整理技能库：
 
 ```text
-使用 $skill-governor 扫描我的共享 Skill，列出未映射、指纹变化和能力重复项。
-先给审计结果，不自动停用或覆盖任何 Skill。
+使用 $skill-governor 扫描我的共享 Skill，
+列出未映射、已经变化和可能重复的能力。先给审计结果，不自动覆盖。
 ```
 
-治理工具负责提供证据和候选动作。合并、覆盖和退役仍要经过可恢复备份和明确的变更范围。
+## 不会自动做的事
 
-## Token 消耗与子代理
+- 没有当前任务授权时，不提交 ComfyUI 或付费云端生成。
+- 不因网络搜索结果看起来合适就自动安装。
+- 不把“命令成功退出”当作视频验收完成。
+- 不在超时后直接重发可能仍在运行的任务。
+- 不永久删除 Skill，也不释放 AutoDL 实例。
+- 不提交 Token、密码、签名 URL、客户素材或私有参考文件。
 
-总控默认使用自适应精简策略：direct/light 只加载当前请求、权威输入和当前 Skill；full 读取项目契约、决策索引、当前阶段及直接依赖。稳定事实只保存一次，下游引用文件路径、版本或决策 ID，不重复复制正文。已确认且输入、工具、约束和行为指纹没有变化的 Skill 分配直接复用。
-
-子代理不是按 Skill 数量创建。只有 full 工作流中至少两个节点已经 `ready`，它们没有前后依赖、写入位置和外部资源互不冲突、输入与验收完整，并且并行收益大于上下文复制和结果合并成本时才使用。子代理只接收当前节点的精简任务包，根代理继续负责用户沟通、整合和最终验收。详细规则见 [`token-and-delegation.md`](skills/ai-creation-workflow/references/token-and-delegation.md)。
-
-## 审批、重试和验收规则
-
-以下节点需要明确的当前范围：付费实例启动、真实 ComfyUI 提交、外部发布、不可恢复的 Skill 替换，以及会改变已锁定创作内容的决定。
-
-每次真实生成至少说明：工作流、输入、时长或批量范围、输出目录和失败回退。云端还要说明实例与关机策略。
-
-命令退出码只能证明程序是否正常结束。视频交付还应检查实际时长、分辨率、帧率、编码、音轨、画面内容以及是否符合创作目标。故事板或提示词通过审核不能代替渲染验收。
-
-超时后优先恢复既有 `prompt_id` 或外部任务 ID。只有确认旧任务没有提交或已经失败且不会继续运行时，才创建新任务。
-
-云端批处理发现已有状态文件时默认拒绝再次提交。使用 `--resume` 会核对实例、任务名、工作流、输出和输入指纹，只轮询状态中已有的 `prompt_id`；任何缺少 `prompt_id` 的不确定任务都会停止并要求先检查远端队列。
-
-## 仓库目录
+## 仓库结构
 
 ```text
-skills/
-  ai-creation-workflow/   项目总控、领域包清单和校验器
-  skill-governor/         Skill 治理
-  h3-runtime-router/      H3 运行选择
-  comfyui-local-runner/   本地执行器
-  minimax-h3-cloud/       云端批处理执行器
-  autodl-app-instance/    AutoDL 实例管理
-templates/                与核心 Skill 内置资产同步的浏览入口
-examples/minimal-project/ 可离线 dry-run 的最小示例
-scripts/install.py        带备份的安装器
-scripts/verify_release.py 发布前检查
-docs/competitive-analysis.md 同类产品对比与迭代结论
-.github/workflows/ci.yml Windows/Linux 离线验证
+skills/                     六个可安装 Skill
+templates/                  核心模板的浏览副本
+examples/minimal-project/   可离线检查的最小示例
+scripts/install.py          带备份的安装器
+scripts/verify_release.py   发布检查
+docs/                       机制说明、对比和设计记录
+.github/workflows/ci.yml    Windows / Linux 验证
 ```
 
-## 验证和开发
-
-运行全部离线验证：
+## 开发和验证
 
 ```powershell
 python scripts/verify_release.py
@@ -613,20 +321,15 @@ python skills/ai-creation-workflow/scripts/test_domain_pack.py
 python skills/ai-creation-workflow/scripts/test_workflow_state.py
 python scripts/test_installation.py
 python scripts/test_runtime_guards.py
-python skills/comfyui-local-runner/scripts/run_local.py examples/minimal-project/local-h3-job.json --dry-run
-python skills/minimax-h3-cloud/scripts/run_batch.py examples/minimal-project/cloud-h3-batch.json --dry-run
 ```
 
-这些 dry-run 不启动实例，不上传素材，也不提交生成任务。
+CI 在 Windows 和 Linux 上测试 Python 3.11、3.13。发布检查还会检查 JSON、Python 语法、内部链接、缓存文件、疑似凭据和私有绝对路径。
 
-`verify_release.py` 会检查 Skill 结构、Python 语法、JSON、内部链接、生成缓存、疑似 JWT 和私有绝对路径。发布前还应确认第三方模型、工作流、自定义节点和素材各自允许再分发。
+## 项目说明
 
-## 安全与发布边界
+- [同类产品对比与后续方向](docs/competitive-analysis.md)
+- [改进计划和完成情况](docs/competitive-improvement-plan.md)
+- [实现与验收记录](docs/pending-execution-plan.md)
+- [第三方来源与改写说明](NOTICE.md)
 
-- 不要提交 API Token、实例密码、签名 URL、私有参考素材和客户视频。
-- 本仓库的 `.env.example` 只是字段示例；AutoDL 工具实际读取环境变量或 `~/.config/autodl.env`。
-- `autodl-app-instance` 不包含释放和删除实例的接口。
-- 仓库发布总控规则和执行适配器，不发布模型权重、第三方工作流或商业素材。
-- AutoDL、MiniMax 和 ComfyUI 名称归各自权利方所有，本项目是独立集成。
-
-许可证：MIT。来源和改写说明见 [`NOTICE.md`](NOTICE.md)。
+许可证：MIT。
